@@ -1,16 +1,16 @@
-// ProfileScreen.js
+// screens/SearchScreen.js
 import { StyleSheet, Text, View } from "react-native";
 import React from "react";
 
-const ProfileScreen = () => {
+const SearchScreen = () => {
     return (
         <View style={styles.container}>
-            <Text style={styles.text}>ProfileScreen</Text>
+            <Text style={styles.text}>SearchScreen</Text>
         </View>
     );
 }
 
-export default ProfileScreen;
+export default SearchScreen;
 
 const styles = StyleSheet.create({
     container: {
