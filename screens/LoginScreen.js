@@ -1,5 +1,5 @@
-import React, {useEffect} from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, SafeAreaView,StatusBar,Alert} from 'react-native';
+import React, { useEffect } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, SafeAreaView, StatusBar, Alert } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import { useNavigation } from '@react-navigation/native';
@@ -7,63 +7,70 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authorize } from 'react-native-app-auth';
 
 const LoginScreen = () => {
-    const navigation = useNavigation();
+  const navigation = useNavigation();
 
-    useEffect(() => {
-      const checkTokenValidity = async () => {
-        const accessToken = await AsyncStorage.getItem("token");
-        const expirationDate = await AsyncStorage.getItem("expirationDate");
-        console.log("acess token",accessToken);
-        console.log("expiration date",expirationDate);
-  
-        if(accessToken && expirationDate){
-          const currentTime = Date.now();
-          if(currentTime < parseInt(expirationDate)){
-            navigation.replace("Main");
-          } else {
-            await AsyncStorage.removeItem("token");
-            await AsyncStorage.removeItem("expirationDate");
-          }
+  useEffect(() => {
+    const checkTokenValidity = async () => {
+      const accessToken = await AsyncStorage.getItem("token");
+      const expirationDate = await AsyncStorage.getItem("expirationDate");
+      console.log("access token", accessToken);
+      console.log("expiration date", expirationDate);
+
+      if (accessToken && expirationDate) {
+        const currentTime = Date.now();
+        if (currentTime < parseInt(expirationDate)) {
+          navigation.navigate("Main");
+        } else {
+          await AsyncStorage.removeItem("token");
+          await AsyncStorage.removeItem("expirationDate");
         }
       }
-  
-      checkTokenValidity();
-    },[navigation])
-
-    async function authenticate () {
-    const config = {
-        issuer:"https://accounts.spotify.com",
-      clientId: 'db35cca4e0d841f7bc77daa2c597c43d',
-      redirectUrl: 'WAD_Assignment_Spotify:/callback',
-      scopes: [
-        'user-read-email',
-        'user-read-private',
-        'playlist-read-private',
-        'playlist-modify-public',
-        'user-library-read',
-        'user-recently-played',
-        'user-top-read',
-      ],
-      serviceConfiguration: {
-        authorizationEndpoint: 'https://accounts.spotify.com/authorize',
-        tokenEndpoint: 'https://accounts.spotify.com/api/token',
-      }
     }
-    const result = await authorize(config);
-    console.log(result);
-    if(result.accessToken){
+
+    checkTokenValidity();
+  }, []);
+
+  async function authenticate() {
+    try {
+      const config = {
+        issuer: "https://accounts.spotify.com/",
+        clientId: 'db35cca4e0d841f7bc77daa2c597c43d',
+        scopes: [
+          'user-read-email',
+          'user-read-private'
+        ],
+        redirectUrl: "com.wadassignment://oauthredirect",
+        serviceConfiguration: {
+          authorizationEndpoint: "https://accounts.spotify.com/authorize",
+          tokenEndpoint: "https://accounts.spotify.com/api/token"
+        },
+        skipCodeExchange: false,
+        usePKCE: true, // Use PKCE for better security if supported
+        dangerouslyAllowInsecureHttpRequests: __DEV__ ? true : false, // Only in dev
+      };
+      const result = await authorize(config);
+      console.log(result);
+      if (!result || !result.accessToken) {
+        throw new Error("Authentication response is incomplete");
+      }
+      console.log("Auth successful, storing token");
       const expirationDate = new Date(result.accessTokenExpirationDate).getTime();
       await AsyncStorage.setItem("token", result.accessToken);
       await AsyncStorage.setItem("expirationDate", expirationDate.toString());
-      navigation.navigate("Main")
+            setTimeout(() => {
+        navigation.navigate("Main");
+      }, 100);
+    } catch (error) {
+      console.error("Authentication error details:", error);
+      Alert.alert("Authentication Failed", "Unable to log in with Spotify. Please try again.");
     }
   }
-
+  
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
-      
+
       <View style={styles.logoContainer}>
         <MaterialCommunityIcons
           name="spotify"
@@ -71,30 +78,30 @@ const LoginScreen = () => {
           size={130}
         />
       </View>
-      
+
       <View style={styles.textContainer}>
         <Text style={styles.headerText}>Millions of Songs</Text>
         <Text style={styles.headerText}>Free on Spotify!</Text>
       </View>
-      
+
       <View style={styles.buttonContainer}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.spotifyButton}
           onPress={authenticate}
         >
           <Text style={styles.spotifyButtonText}>Sign In with Spotify</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity style={styles.authButton}>
           <MaterialCommunityIcons name="cellphone" size={24} color="white" style={styles.buttonIcon} />
           <Text style={styles.authButtonText}>Continue With phone number</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity style={styles.authButton}>
           <FontAwesome name="google" size={24} color="#DB4437" style={styles.buttonIcon} />
           <Text style={styles.authButtonText}>Sign In with Google</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity style={styles.authButton}>
           <FontAwesome name="facebook" size={24} color="#3b5998" style={styles.buttonIcon} />
           <Text style={styles.authButtonText}>Sign In with Facebook</Text>
