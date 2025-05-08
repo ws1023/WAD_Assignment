@@ -10,20 +10,19 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { NavigationContainer } from "@react-navigation/native";
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { TouchableOpacity, Image, View, StyleSheet } from "react-native";
+import { Colors } from './theme';
 
 const Tab = createBottomTabNavigator();
 
 function ProfileAvatar({ navigation }) {
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       onPress={() => navigation.navigate('Profile')}
       style={styles.avatarContainer}
     >
-      <Image 
-        source={require('./assets/images/UCS_logo.png')} // Replace with your actual avatar image
+      <Image
+        source={require('./assets/images/UCS_logo.png')}
         style={styles.avatar}
-        // If you don't have an image yet, use a placeholder icon instead:
-        // fallback={<MaterialCommunityIcons name="account-circle" size={32} color="#FFFFFF" />}
       />
     </TouchableOpacity>
   );
@@ -32,11 +31,10 @@ function ProfileAvatar({ navigation }) {
 // Common header setup for all screens
 const screenOptions = ({ navigation }) => ({
   headerStyle: {
-    backgroundColor: '#121212',
-    elevation: 0, // for Android
-    shadowOpacity: 0, // for iOS
+    backgroundColor: Colors.cardBackground,
+    elevation: 0,
   },
-  headerTintColor: '#FFFFFF',
+  headerTintColor: Colors.text,
   headerLeft: () => <ProfileAvatar navigation={navigation} />,
   headerTitle: "",
 });
@@ -46,13 +44,17 @@ function BottomTabs() {
     <Tab.Navigator
       screenOptions={{
         tabBarStyle: {
-          backgroundColor: '#121212',
-          borderTopColor: '#333333',
+          backgroundColor: Colors.background,
+          borderTopColor: Colors.background,
           height: 60,
           paddingBottom: 10,
         },
-        tabBarActiveTintColor: '#1DB954', // Spotify green
-        tabBarInactiveTintColor: '#B3B3B3', // Spotify inactive color
+        tabBarActiveTintColor: Colors.primary,
+        tabBarInactiveTintColor: Colors.textSecondary,
+        tabBarLabelStyle: {
+          marginTop: -15, // 负边距拉近与图标的距离
+          textAlign: 'center'
+        },
       }}
     >
       <Tab.Screen
@@ -76,7 +78,7 @@ function BottomTabs() {
           ...screenOptions({ navigation }),
           tabBarIcon: ({ focused, color }) => (
             <MaterialCommunityIcons
-              name="magnify"  
+              name="magnify"
               size={focused ? 28 : 24}
               color={color}
             />
@@ -90,7 +92,7 @@ function BottomTabs() {
           ...screenOptions({ navigation }),
           tabBarIcon: ({ focused, color }) => (
             <MaterialCommunityIcons
-              name="bookshelf" 
+              name="bookshelf"
               size={focused ? 28 : 24}
               color={color}
             />
@@ -117,33 +119,33 @@ function BottomTabs() {
 
 const Stack = createStackNavigator();
 
-function Navigation(){
-    return (
-        <NavigationContainer>
-            <Stack.Navigator>
-                <Stack.Screen 
-                  name="Login" 
-                  component={LoginScreen} 
-                  options={{headerShown: false}}
-                />
-                <Stack.Screen 
-                  name="Main" 
-                  component={BottomTabs} 
-                  options={{headerShown: false}}
-                />
-                <Stack.Screen 
-                  name="Profile" 
-                  component={ProfileScreen} 
-                  options={{
-                    headerStyle: {
-                      backgroundColor: '#121212',
-                    },
-                    headerTintColor: '#FFFFFF',
-                  }}
-                />
-            </Stack.Navigator>
-        </NavigationContainer>
-    )
+function Navigation() {
+  return (
+    <NavigationContainer>
+      <Stack.Navigator>
+        <Stack.Screen
+          name="Login"
+          component={LoginScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Main"
+          component={BottomTabs}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Profile"
+          component={ProfileScreen}
+          options={{
+            headerStyle: {
+              backgroundColor: Colors.cardBackground,
+            },
+            headerTintColor: Colors.text,
+          }}
+        />
+      </Stack.Navigator>
+    </NavigationContainer>
+  )
 }
 
 const styles = StyleSheet.create({
@@ -154,7 +156,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#333333', 
+    backgroundColor: Colors.elevatedBackground, 
   }
 });
 
