@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from "react-native";
 import Navigation from "./StackNavigator";
+import { Colors } from './theme';
 
 export default function App() {
   return (
@@ -11,6 +12,6 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: Colors.background,
   },
 });
