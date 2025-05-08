@@ -11,15 +11,19 @@ import { NavigationContainer } from "@react-navigation/native";
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { TouchableOpacity, Image, View, StyleSheet } from "react-native";
 import { Colors } from './theme';
+import { Colors } from './theme';
 
 const Tab = createBottomTabNavigator();
 
 function ProfileAvatar({ navigation }) {
   return (
     <TouchableOpacity
+    <TouchableOpacity
       onPress={() => navigation.navigate('Profile')}
       style={styles.avatarContainer}
     >
+      <Image
+        source={require('./assets/images/UCS_logo.png')}
       <Image
         source={require('./assets/images/UCS_logo.png')}
         style={styles.avatar}
@@ -35,6 +39,7 @@ const screenOptions = ({ navigation }) => ({
     elevation: 0,
   },
   headerTintColor: Colors.text,
+  headerTintColor: Colors.text,
   headerLeft: () => <ProfileAvatar navigation={navigation} />,
   headerTitle: "",
 });
@@ -46,8 +51,16 @@ function BottomTabs() {
         tabBarStyle: {
           backgroundColor: Colors.background,
           borderTopColor: Colors.background,
+          backgroundColor: Colors.background,
+          borderTopColor: Colors.background,
           height: 60,
           paddingBottom: 10,
+        },
+        tabBarActiveTintColor: Colors.primary,
+        tabBarInactiveTintColor: Colors.textSecondary,
+        tabBarLabelStyle: {
+          marginTop: -15, // 负边距拉近与图标的距离
+          textAlign: 'center'
         },
         tabBarActiveTintColor: Colors.primary,
         tabBarInactiveTintColor: Colors.textSecondary,
@@ -79,6 +92,7 @@ function BottomTabs() {
           tabBarIcon: ({ focused, color }) => (
             <MaterialCommunityIcons
               name="magnify"
+              name="magnify"
               size={focused ? 28 : 24}
               color={color}
             />
@@ -92,6 +106,7 @@ function BottomTabs() {
           ...screenOptions({ navigation }),
           tabBarIcon: ({ focused, color }) => (
             <MaterialCommunityIcons
+              name="bookshelf"
               name="bookshelf"
               size={focused ? 28 : 24}
               color={color}
@@ -146,6 +161,33 @@ function Navigation() {
       </Stack.Navigator>
     </NavigationContainer>
   )
+function Navigation() {
+  return (
+    <NavigationContainer>
+      <Stack.Navigator>
+        <Stack.Screen
+          name="Login"
+          component={LoginScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Main"
+          component={BottomTabs}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Profile"
+          component={ProfileScreen}
+          options={{
+            headerStyle: {
+              backgroundColor: Colors.cardBackground,
+            },
+            headerTintColor: Colors.text,
+          }}
+        />
+      </Stack.Navigator>
+    </NavigationContainer>
+  )
 }
 
 const styles = StyleSheet.create({
@@ -156,6 +198,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
+    backgroundColor: Colors.elevatedBackground, 
     backgroundColor: Colors.elevatedBackground, 
   }
 });
