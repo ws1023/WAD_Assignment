@@ -18,6 +18,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Colors } from '../theme';
 
 const ProfileScreen = () => {
   const [userProfile, setUserProfile] = useState(null);
@@ -187,11 +188,11 @@ const ProfileScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#121212',
+    backgroundColor: Colors.background,
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#121212',
+    backgroundColor: Colors.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -200,7 +201,7 @@ const styles = StyleSheet.create({
     paddingTop: 30,
     paddingBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
+    borderBottomColor: Colors.border,
   },
   profileImage: {
     width: 120,
@@ -232,11 +233,11 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: 'white',
+    color: Colors.text,
   },
   statLabel: {
     fontSize: 14,
-    color: '#b3b3b3',
+    color: Colors.textSecondary,
     marginTop: 4,
   },
   section: {
@@ -266,7 +267,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   logoutText: {
-    color: '#ff5252',
+    color: Colors.error,
   },
   footer: {
     paddingVertical: 20,

@@ -1,0 +1,15 @@
+export default {
+    background: '#050505',      
+    cardBackground: '#121212',   
+    elevatedBackground: '#1E1E1E', 
+    primary: '#1DB954',         
+    error: '#ff5252',          
+    text: '#FFFFFF',            
+    textSecondary: '#B3B3B3',  
+    inactive: '#666666',       
+    border: '#333333',        
+    success: '#1DB954',          
+    warning: '#FFD700',          
+    danger: '#FF6B6B',          
+    tabBarBackground: 'rgba(0, 0, 0, 0.85)',
+  };

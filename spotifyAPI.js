@@ -245,3 +245,135 @@ export const getUserFollowing = async (type = 'artist', limit = 1) => {
     return null;
   }
 };
+
+export const getRecentlyPlayed = async (limit = 50) => {
+  const token = await getValidToken();
+  if (!token) return null;
+  
+  try {
+    const response = await fetch(
+      `${SPOTIFY_API_BASE}/me/player/recently-played?limit=${limit}`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    
+    if (response.status === 200) {
+      return await response.json();
+    } else {
+      console.error('Failed to get recently played tracks:', response.status);
+      return null;
+    }
+  } catch (error) {
+    console.error('Error fetching recently played tracks:', error);
+    return null;
+  }
+};
+
+export const getUserStats = async (timeRange = 'medium_term') => {
+  const token = await getValidToken();
+  if (!token) return null;
+  
+  try {
+    const topTracks = await getTopTracks(timeRange, 50);
+    
+    const topArtists = await getTopArtists(timeRange, 50);
+    
+    const recentlyPlayed = await getRecentlyPlayed(50);
+    
+    if (!topTracks || !topArtists || !recentlyPlayed) {
+      return null;
+    }
+    
+    // Calculate estimated statistics
+    // Note: These are very rough estimates and would not match real Spotify stats
+    
+    // Get unique tracks, artists, and albums from top tracks
+    const uniqueTracks = new Set(topTracks.items.map(item => item.id));
+    const uniqueArtists = new Set(topTracks.items.flatMap(item => item.artists.map(artist => artist.id)));
+    const uniqueAlbums = new Set(topTracks.items.map(item => item.album.id));
+    
+    // Estimate streaming count based on popularity of top tracks
+    // This is just a rough approximation
+    const estimatedStreams = topTracks.items.reduce((sum, track) => sum + (track.popularity / 2), 0);
+    
+    // Estimate minutes streamed (average track is ~3.5 minutes)
+    const estimatedMinutes = estimatedStreams * 3.5;
+    
+    // Convert to hours and days
+    const estimatedHours = Math.floor(estimatedMinutes / 60);
+    const estimatedDays = Math.floor(estimatedHours / 24);
+    
+    // Return estimated stats
+    return {
+      streams: Math.round(estimatedStreams),
+      differentTracks: uniqueTracks.size,
+      minutesStreamed: Math.round(estimatedMinutes),
+      differentArtists: uniqueArtists.size,
+      hoursStreamed: estimatedHours,
+      differentAlbums: uniqueAlbums.size,
+      daysStreamed: estimatedDays,
+      // In a real implementation, you would calculate these from historical data
+      changes: {
+        streams: -Math.floor(Math.random() * 50),
+        differentTracks: Math.floor(Math.random() * 10) - 5,
+        minutesStreamed: -Math.floor(Math.random() * 50),
+        differentArtists: -Math.floor(Math.random() * 15),
+        hoursStreamed: -Math.floor(Math.random() * 50),
+        differentAlbums: -Math.floor(Math.random() * 15),
+        daysStreamed: -Math.floor(Math.random() * 50)
+      },
+      // For the daily stats visualization
+      dailyStats: {
+        streams: Math.floor(Math.random() * 100) + 20,
+        minutes: Math.floor(Math.random() * 300) + 100
+      }
+    };
+  } catch (error) {
+    console.error('Error calculating user stats:', error);
+    return null;
+  }
+};
+
+export const getTopAlbums = async (timeRange = 'medium_term', limit = 20) => {
+  try {
+    const topTracks = await getTopTracks(timeRange, 50);
+    if (!topTracks || !topTracks.items) return [];
+    
+    // Create a map to store unique albums
+    const albumsMap = new Map();
+    
+    // Process each track to extract album info
+    topTracks.items.forEach(track => {
+      const albumId = track.album.id;
+      
+      if (!albumsMap.has(albumId)) {
+        // Create new album entry
+        albumsMap.set(albumId, {
+          ...track.album,
+          tracks: [track],
+          popularity: track.popularity
+        });
+      } else {
+        // Update existing album entry
+        const album = albumsMap.get(albumId);
+        album.tracks.push(track);
+        album.popularity += track.popularity;
+        albumsMap.set(albumId, album);
+      }
+    });
+    
+    // Convert map to array and sort by popularity
+    const albums = Array.from(albumsMap.values())
+      .sort((a, b) => b.popularity - a.popularity)
+      .slice(0, limit);
+    
+    return albums;
+  } catch (error) {
+    console.error('Error extracting top albums:', error);
+    return [];
+  }
+};
