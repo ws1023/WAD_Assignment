@@ -260,9 +260,97 @@ export const getRecentlyPlayed = async (limit = 50) => {
         },
       }
     );
-    
     if (response.status === 200) {
       return await response.json();
+    } else if (response.status === 403) {
+      console.error('Failed to get recently played tracks: 403 Forbidden');
+      return 403; // Return the status code so we can handle it specially
+    } else {
+      console.error('Failed to get recently played tracks:', response.status);
+      return null;
+    }
+  } catch (error) {
+    console.error('Error fetching recently played tracks:', error);
+    return null;
+  }
+};
+
+export const getRecentlyPlayedItems = async (limit = 50) => {
+  const token = await getValidToken();
+  if (!token) return null;
+  
+  try {
+    const response = await fetch(
+      `${SPOTIFY_API_BASE}/me/player/recently-played?limit=${limit}`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    
+    if (response.status === 200) {
+      const data = await response.json();
+      
+      // Extract context info from each item
+      const recentContexts = new Map();
+      
+      // Process each recently played track
+      data.items.forEach(item => {
+        // Track info
+        const trackId = item.track.id;
+        const playedAt = new Date(item.played_at).getTime();
+        
+        // Context type (playlist, album, artist)
+        if (item.context) {
+          const contextUri = item.context.uri;
+          const contextType = contextUri.split(':')[1]; // spotify:TYPE:ID
+          const contextId = contextUri.split(':')[2];
+          
+          // Only store the most recent play for each context
+          if (!recentContexts.has(contextUri) || playedAt > recentContexts.get(contextUri).playedAt) {
+            recentContexts.set(contextUri, {
+              type: contextType,
+              id: contextId,
+              playedAt,
+              track: item.track
+            });
+          }
+        }
+        
+        // Also track individual items (albums and artists) from tracks without context
+        if (!item.context) {
+          // Add album
+          const albumUri = `spotify:album:${item.track.album.id}`;
+          if (!recentContexts.has(albumUri) || playedAt > recentContexts.get(albumUri).playedAt) {
+            recentContexts.set(albumUri, {
+              type: 'album',
+              id: item.track.album.id,
+              playedAt,
+              track: item.track
+            });
+          }
+          
+          // Add primary artist
+          if (item.track.artists.length > 0) {
+            const artistUri = `spotify:artist:${item.track.artists[0].id}`;
+            if (!recentContexts.has(artistUri) || playedAt > recentContexts.get(artistUri).playedAt) {
+              recentContexts.set(artistUri, {
+                type: 'artist',
+                id: item.track.artists[0].id,
+                playedAt,
+                track: item.track
+              });
+            }
+          }
+        }
+      });
+      
+      return {
+        items: data.items,
+        contexts: Array.from(recentContexts.values())
+      };
     } else {
       console.error('Failed to get recently played tracks:', response.status);
       return null;
@@ -375,5 +463,119 @@ export const getTopAlbums = async (timeRange = 'medium_term', limit = 20) => {
   } catch (error) {
     console.error('Error extracting top albums:', error);
     return [];
+  }
+};
+
+// Get the current playback state
+export const getPlaybackState = async () => {
+  const token = await getValidToken();
+  if (!token) return null;
+  
+  try {
+    const response = await fetch(
+      `${SPOTIFY_API_BASE}/me/player`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    
+    if (response.status === 200) {
+      return await response.json();
+    } else if (response.status === 204) {
+      // No active device
+      return { is_playing: false };
+    } else {
+      console.error('Failed to get playback state:', response.status);
+      return null;
+    }
+  } catch (error) {
+    console.error('Error fetching playback state:', error);
+    return null;
+  }
+};
+
+// Get artist details including followers count
+export const getArtistDetails = async (artistId) => {
+  const token = await getValidToken();
+  if (!token) return null;
+  
+  try {
+    const response = await fetch(
+      `${SPOTIFY_API_BASE}/artists/${artistId}`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    
+    if (response.status === 200) {
+      return await response.json();
+    } else {
+      console.error('Failed to get artist details:', response.status);
+      return null;
+    }
+  } catch (error) {
+    console.error('Error fetching artist details:', error);
+    return null;
+  }
+};
+
+export const getUserSavedAlbums = async (limit = 50) => {
+  const token = await getValidToken();
+  if (!token) return null;
+  
+  try {
+    const response = await fetch(
+      `${SPOTIFY_API_BASE}/me/albums?limit=${limit}`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    
+    if (response.status === 200) {
+      return await response.json();
+    } else {
+      console.error('Failed to get saved albums:', response.status);
+      return null;
+    }
+  } catch (error) {
+    console.error('Error fetching saved albums:', error);
+    return null;
+  }
+};
+
+export const getFollowedArtists = async (limit = 50) => {
+  const token = await getValidToken();
+  if (!token) return null;
+  
+  try {
+    const response = await fetch(
+      `${SPOTIFY_API_BASE}/me/following?type=artist&limit=${limit}`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    
+    if (response.status === 200) {
+      const data = await response.json();
+      return data.artists; // Return the artists object directly
+    } else {
+      console.error('Failed to get followed artists:', response.status);
+      return null;
+    }
+  } catch (error) {
+    console.error('Error fetching followed artists:', error);
+    return null;
   }
 };
