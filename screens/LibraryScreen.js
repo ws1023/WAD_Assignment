@@ -15,12 +15,16 @@ import { getUserPlaylists, getUserSavedAlbums, getFollowedArtists, getRecentlyPl
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Colors from "../theme/colors";
+import { queryLocalPlaylists } from '../utils/storage';
+import { useNavigation } from "@react-navigation/native";
 
 const LibraryScreen = () => {
+    const navigation = useNavigation();
     const [playlists, setPlaylists] = useState([]);
     const [savedAlbums, setSavedAlbums] = useState([]);
     const [followedArtists, setFollowedArtists] = useState([]);
     const [recentlyPlayed, setRecentlyPlayed] = useState([]);
+    const [localPlaylists, setLocalPlaylists] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeFilter, setActiveFilter] = useState(null);
     const [sortMode, setSortMode] = useState("recent");
@@ -49,6 +53,20 @@ const LibraryScreen = () => {
         fetchLibraryData();
     }, []);
 
+    useEffect(() => {
+        const fetchLocalPlaylists = async () => {
+            try {
+                const localPlaylistsData = await queryLocalPlaylists();
+                setLocalPlaylists(localPlaylistsData || []);
+            } catch (error) {
+                console.error('Error fetching local playlists:', error);
+                setLocalPlaylists([]);
+            }
+        };
+        
+        fetchLocalPlaylists();
+    }, []);
+
     const prepareData = () => {
         let data = [];
         
@@ -59,6 +77,17 @@ const LibraryScreen = () => {
                 displayName: item.name,
                 owner: item.owner?.display_name || "You", 
                 image: item.images?.[0]?.url,
+                id: item.id
+            }))];
+        }
+        
+        if (activeFilter === null || activeFilter === "localPlaylists") {
+            data = [...data, ...localPlaylists.map(item => ({
+                ...item,
+                type: "localPlaylist",
+                displayName: item.name || item.playlistName,
+                owner: "Local Storage",
+                image: item.image || null,
                 id: item.id
             }))];
         }
@@ -157,7 +186,18 @@ const LibraryScreen = () => {
     );
 
     const renderLibraryItem = ({ item }) => (
-        <TouchableOpacity style={styles.libraryItem}>
+        <TouchableOpacity 
+            style={styles.libraryItem}
+            onPress={() => {
+                if (item.type === "album") {
+                    navigation.navigate('AlbumDetails', { albumId: item.id });
+                } else if (item.type === "playlist" || item.type === "localPlaylist") {
+                    navigation.navigate('PlaylistDetails', { playlistId: item.id });
+                } else if (item.type === "artist") {
+                    navigation.navigate('ArtistDetails', { artistId: item.id });
+                }
+            }}
+        >
             {item.image ? (
                 <Image 
                     source={{ uri: item.image }} 
@@ -211,6 +251,7 @@ const LibraryScreen = () => {
             
             <View style={styles.filterTabs}>
                 {renderFilterTab("Playlists", "playlists")}
+                {renderFilterTab("Local", "localPlaylists")}  
                 {renderFilterTab("Albums", "albums")}
                 {renderFilterTab("Artists", "artists")}
             </View>

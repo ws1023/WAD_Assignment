@@ -168,6 +168,42 @@ const ProfileScreen = () => {
       </View>
 
       <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Your Library</Text>
+        
+        <TouchableOpacity 
+          style={styles.menuItem}
+          onPress={() => navigation.navigate('Playlists')}
+        >
+          <MaterialCommunityIcons name="playlist-music" size={24} color={Colors.primary} />
+          <View style={styles.menuItemTextContainer}>
+            <Text style={styles.menuItemText}>Local Playlists</Text>
+            <View style={styles.localBadge}>
+              <Text style={styles.localBadgeText}>Local Storage</Text>
+            </View>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={24} color="#666" />
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.menuItem}>
+          <MaterialCommunityIcons name="spotify" size={24} color="white" />
+          <Text style={styles.menuItemText}>Spotify Playlists</Text>
+          <MaterialCommunityIcons name="chevron-right" size={24} color="#666" />
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.menuItem}>
+          <MaterialCommunityIcons name="album" size={24} color="white" />
+          <Text style={styles.menuItemText}>Albums</Text>
+          <MaterialCommunityIcons name="chevron-right" size={24} color="#666" />
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.menuItem}>
+          <MaterialCommunityIcons name="account-music" size={24} color="white" />
+          <Text style={styles.menuItemText}>Artists</Text>
+          <MaterialCommunityIcons name="chevron-right" size={24} color="#666" />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.section}>
         <TouchableOpacity 
           style={[styles.menuItem, styles.logoutButton]} 
           onPress={handleLogout}
@@ -262,6 +298,22 @@ const styles = StyleSheet.create({
     color: 'white',
     marginLeft: 16,
     flex: 1,
+  },
+  menuItemTextContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  localBadge: {
+    backgroundColor: Colors.primary,
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginLeft: 8,
+  },
+  localBadgeText: {
+    fontSize: 12,
+    color: 'white',
+    fontWeight: 'bold',
   },
   logoutButton: {
     marginTop: 8,

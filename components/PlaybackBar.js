@@ -3,22 +3,38 @@ import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { usePlayback } from '../contexts/PlaybackContext';
 import { Colors } from '../theme';
+import { useNavigation } from '@react-navigation/native';
 
 const PlaybackBar = ({ onPress }) => {
-  const { playbackState, pause, play, skipToNext, skipToPrevious } = usePlayback();
+  const { 
+    playbackState, 
+    pause, 
+    play, 
+    isFavorite, 
+    toggleFavorite 
+  } = usePlayback();
+  const navigation = useNavigation();
 
   // Don't render if no playback or not playing
   if (!playbackState || !playbackState.item) {
     return null;
   }
 
-  const { item, is_playing, device } = playbackState;
-  const { name, artists, album } = item;
+  const { item, is_playing } = playbackState;
+  const { name, artists, album, id: trackId } = item;
+  
+  // Check if this track is in favorites
+  const trackIsFavorite = isFavorite(trackId);
+
+  const handleFavoriteToggle = (e) => {
+    e.stopPropagation();
+    toggleFavorite(trackId);
+  };
 
   return (
     <TouchableOpacity 
       style={styles.container} 
-      onPress={onPress}
+      onPress={() => navigation.navigate('Playback')}
       activeOpacity={0.9}
     >
       <View style={styles.progressBar}>
@@ -31,34 +47,34 @@ const PlaybackBar = ({ onPress }) => {
       </View>
 
       <View style={styles.content}>
-        <Image 
-          source={{ uri: album.images[0]?.url }}
-          style={styles.albumArt}
-        />
-        
-        <View style={styles.trackInfo}>
-          <Text style={styles.trackName} numberOfLines={1}>{name}</Text>
-          <Text style={styles.artistName} numberOfLines={1}>
-            {artists.map(artist => artist.name).join(', ')}
-          </Text>
-          {device && (
-            <Text style={styles.deviceName} numberOfLines={1}>
-              Playing on {device.name}
+        <View style={styles.leftSection}>
+          <Image 
+            source={{ uri: album.images[0]?.url }}
+            style={styles.albumArt}
+          />
+          
+          <View style={styles.trackInfo}>
+            <Text style={styles.trackName} numberOfLines={1}>{name}</Text>
+            <Text style={styles.artistName} numberOfLines={1}>
+              {artists.map(artist => artist.name).join(', ')}
             </Text>
-          )}
+          </View>
         </View>
         
         <View style={styles.controls}>
+          {/* Favorite button */}
           <TouchableOpacity 
-            onPress={(e) => {
-              e.stopPropagation();
-              skipToPrevious();
-            }} 
+            onPress={handleFavoriteToggle} 
             style={styles.controlButton}
           >
-            <MaterialCommunityIcons name="skip-previous" size={24} color={Colors.text} />
+            <MaterialCommunityIcons 
+              name={trackIsFavorite ? "check-circle" : "plus-circle-outline"} 
+              size={24} 
+              color={trackIsFavorite ? Colors.primary : Colors.text} 
+            />
           </TouchableOpacity>
           
+          {/* Play/Pause button */}
           <TouchableOpacity 
             onPress={(e) => {
               e.stopPropagation();
@@ -71,16 +87,6 @@ const PlaybackBar = ({ onPress }) => {
               size={28} 
               color={Colors.text} 
             />
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            onPress={(e) => {
-              e.stopPropagation();
-              skipToNext();
-            }} 
-            style={styles.controlButton}
-          >
-            <MaterialCommunityIcons name="skip-next" size={24} color={Colors.text} />
           </TouchableOpacity>
         </View>
       </View>
@@ -103,7 +109,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
     zIndex: 1,
-    elevation: 1, // For Android
   },
   progressBar: {
     height: 3,
@@ -117,7 +122,13 @@ const styles = StyleSheet.create({
   content: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     padding: 8,
+  },
+  leftSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   albumArt: {
     width: 48,
@@ -138,21 +149,16 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontSize: 12,
   },
-  deviceName: {
-    color: Colors.primary,
-    fontSize: 10,
-    marginTop: 2,
-  },
   controls: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 16, // Spacing between buttons
   },
   controlButton: {
     padding: 8,
   },
   playPauseButton: {
     padding: 8,
-    marginHorizontal: 4,
   },
 });
 

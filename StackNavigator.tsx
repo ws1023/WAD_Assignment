@@ -7,6 +7,9 @@ import StatsScreen from "./screens/StatsScreen";
 import ProfileScreen from "./screens/ProfileScreen";
 import LoginScreen from "./screens/LoginScreen";
 import PlaybackScreen from './screens/PlaybackScreen';
+import AlbumDetailsScreen from './screens/AlbumDetailsScreen'; 
+import PlaylistDetailScreen from './screens/PlaylistDetailScreen'; 
+import ArtistDetailScreen from './screens/ArtistDetailScreen'; 
 import { createStackNavigator } from "@react-navigation/stack";
 import { NavigationContainer, useNavigation, useRoute, getFocusedRouteNameFromRoute } from "@react-navigation/native";
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -45,8 +48,8 @@ const screenOptions = ({ navigation }) => ({
 
 function BottomTabs() {
   const { startPolling, stopPolling } = usePlayback();
-  const navigation = useNavigation();
   const route = useRoute();
+  const navigation = useNavigation(); 
   
   // Start polling for playback state when component mounts
   useEffect(() => {
@@ -171,6 +174,24 @@ function Navigation() {
         <Stack.Screen
           name="Playback"
           component={PlaybackScreen}
+          options={{ headerShown: false }}
+        />
+        {/* Add the AlbumDetails screen */}
+        <Stack.Screen  
+          name="AlbumDetails" 
+          component={AlbumDetailsScreen}
+          options={{ headerShown: false }} 
+        />
+        {/* Add the PlaylistDetails screen */}
+        <Stack.Screen  
+          name="PlaylistDetails" 
+          component={PlaylistDetailScreen}
+          options={{ headerShown: false }} 
+        />
+        {/* Add the ArtistDetails screen */}
+        <Stack.Screen
+          name="ArtistDetails"
+          component={ArtistDetailScreen}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>

@@ -15,7 +15,7 @@ import Slider from '@react-native-community/slider';
 import { useNavigation } from '@react-navigation/native';
 import { usePlayback } from '../contexts/PlaybackContext';
 import { Colors } from '../theme';
-import { getArtistDetails } from '../spotifyAPI'; // Add this to your import statements
+import { getArtistDetails, startPlayback, pausePlayback, seekToPosition } from '../spotifyAPI'; // Add this to your import statements
 
 const { width, height } = Dimensions.get('window');
 
@@ -31,7 +31,7 @@ const placeholderImage = 'https://community.spotify.com/t5/image/serverpage/imag
 
 const PlaybackScreen = () => {
   const navigation = useNavigation();
-  const { playbackState, play, pause, skipToNext, skipToPrevious } = usePlayback();
+  const { playbackState, play, pause, isFavorite, toggleFavorite } = usePlayback();
   const [sliderValue, setSliderValue] = useState(0);
   const [currentProgress, setCurrentProgress] = useState(0);
   const intervalRef = useRef(null);
@@ -134,6 +134,25 @@ const PlaybackScreen = () => {
     return count.toString();
   };
 
+  const handleSliderValueChange = (value) => {
+    // Update the slider value without updating time during slide
+    setSliderValue(value);
+  };
+
+  const handleSliderSlidingComplete = async (value) => {
+    // Calculate the position in ms
+    const newPosition = Math.round(value * (playbackState.item.duration_ms || 0));
+    setCurrentProgress(newPosition);
+    
+    // Call the API to seek to that position
+    await seekToPosition(newPosition);
+    
+    // If the track was playing, ensure it continues playing
+    if (playbackState.is_playing) {
+      startProgressInterval();
+    }
+  };
+
   // First-level check for playback state
   if (!playbackState) {
     return (
@@ -204,8 +223,15 @@ const PlaybackScreen = () => {
               <Text style={styles.trackTitle} numberOfLines={1}>{item.name}</Text>
               <Text style={styles.artistNameSmall} numberOfLines={1}>{artistName}</Text>
             </View>
-            <TouchableOpacity style={styles.addButton}>
-              <MaterialCommunityIcons name="plus-circle-outline" size={24} color={Colors.text} />
+            <TouchableOpacity 
+              style={styles.addButton}
+              onPress={() => toggleFavorite(item.id)}
+            >
+              <MaterialCommunityIcons 
+                name={isFavorite(item.id) ? "check-circle" : "plus-circle-outline"} 
+                size={24} 
+                color={isFavorite(item.id) ? Colors.primary : Colors.text} 
+              />
             </TouchableOpacity>
           </View>
           
@@ -219,6 +245,8 @@ const PlaybackScreen = () => {
               minimumTrackTintColor={Colors.text}
               maximumTrackTintColor="rgba(255, 255, 255, 0.3)"
               thumbTintColor={Colors.text}
+              onValueChange={handleSliderValueChange}
+              onSlidingComplete={handleSliderSlidingComplete}
             />
             <View style={styles.timeContainer}>
               <Text style={styles.timeText}>
@@ -232,17 +260,7 @@ const PlaybackScreen = () => {
           
           {/* Controls */}
           <View style={styles.controlsContainer}>
-            <TouchableOpacity style={styles.controlButton}>
-              <MaterialCommunityIcons name="shuffle" size={24} color={Colors.text} />
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.controlButton} 
-              onPress={skipToPrevious}
-            >
-              <MaterialCommunityIcons name="skip-previous" size={36} color={Colors.text} />
-            </TouchableOpacity>
-            
+            {/* Only keep the play/pause button */}
             <TouchableOpacity 
               style={styles.playPauseButton} 
               onPress={handlePlayPause}
@@ -252,17 +270,6 @@ const PlaybackScreen = () => {
                 size={30} 
                 color="black" 
               />
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.controlButton} 
-              onPress={skipToNext}
-            >
-              <MaterialCommunityIcons name="skip-next" size={36} color={Colors.text} />
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.controlButton}>
-              <MaterialCommunityIcons name="cast" size={24} color={Colors.text} />
             </TouchableOpacity>
           </View>
         </View>
@@ -283,9 +290,6 @@ const PlaybackScreen = () => {
                   {artistDetails ? formatFollowers(artistDetails.followers.total) : '...'} followers
                 </Text>
               </View>
-              <TouchableOpacity style={styles.followButton}>
-                <Text style={styles.followText}>Follow</Text>
-              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -379,13 +383,10 @@ const styles = StyleSheet.create({
   },
   controlsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center', 
     alignItems: 'center',
     marginTop: 10,
     marginBottom: 10,
-  },
-  controlButton: {
-    padding: 10,
   },
   playPauseButton: {
     width: 56,
@@ -436,18 +437,6 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontSize: 12,
     marginTop: 4,
-  },
-  followButton: {
-    borderWidth: 1,
-    borderColor: Colors.textSecondary,
-    borderRadius: 20,
-    paddingVertical: 6,
-    paddingHorizontal: 16,
-  },
-  followText: {
-    color: Colors.text,
-    fontSize: 12,
-    fontWeight: '500',
   },
   noPlaybackText: {
     color: Colors.text,
