@@ -15,7 +15,6 @@ import {
   getUserPlaylists, 
   clearAuthData 
 } from '../spotifyAPI';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors } from '../theme';
@@ -74,7 +73,6 @@ const ProfileScreen = () => {
           onPress: async () => {
             try {
               await clearAuthData();
-              // Navigate back to login screen
               navigation.reset({
                 index: 0,
                 routes: [{ name: 'Login' }],
@@ -111,96 +109,21 @@ const ProfileScreen = () => {
         <Text style={styles.username}>{userProfile?.id || '@user'}</Text>
         
         <View style={styles.statsRow}>
-  <View style={styles.statItem}>
-    <Text style={styles.statValue}>{userProfile?.followers?.total || 0}</Text>
-    <Text style={styles.statLabel}>Followers</Text>
-  </View>
-  
-  <View style={styles.statItem}>
-    <Text style={styles.statValue}>{followingCount}</Text>
-    <Text style={styles.statLabel}>Following</Text>
-  </View>
-  
-  <View style={styles.statItem}>
-    <Text style={styles.statValue}>{playlistsCount}</Text>
-    <Text style={styles.statLabel}>Playlists</Text>
-  </View>
-</View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Account</Text>
-        
-        <TouchableOpacity style={styles.menuItem}>
-          <MaterialCommunityIcons name="account-outline" size={24} color="white" />
-          <Text style={styles.menuItemText}>Profile Settings</Text>
-          <MaterialCommunityIcons name="chevron-right" size={24} color="#666" />
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.menuItem}>
-          <MaterialCommunityIcons name="bell-outline" size={24} color="white" />
-          <Text style={styles.menuItemText}>Notifications</Text>
-          <MaterialCommunityIcons name="chevron-right" size={24} color="#666" />
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.menuItem}>
-          <MaterialCommunityIcons name="shield-outline" size={24} color="white" />
-          <Text style={styles.menuItemText}>Privacy</Text>
-          <MaterialCommunityIcons name="chevron-right" size={24} color="#666" />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>App Settings</Text>
-        
-        <TouchableOpacity style={styles.menuItem}>
-          <MaterialCommunityIcons name="theme-light-dark" size={24} color="white" />
-          <Text style={styles.menuItemText}>Appearance</Text>
-          <MaterialCommunityIcons name="chevron-right" size={24} color="#666" />
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.menuItem}>
-          <MaterialCommunityIcons name="music-note" size={24} color="white" />
-          <Text style={styles.menuItemText}>Playback</Text>
-          <MaterialCommunityIcons name="chevron-right" size={24} color="#666" />
-        </TouchableOpacity>
-        
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Your Library</Text>
-        
-        <TouchableOpacity 
-          style={styles.menuItem}
-          onPress={() => navigation.navigate('Playlists')}
-        >
-          <MaterialCommunityIcons name="playlist-music" size={24} color={Colors.primary} />
-          <View style={styles.menuItemTextContainer}>
-            <Text style={styles.menuItemText}>Local Playlists</Text>
-            <View style={styles.localBadge}>
-              <Text style={styles.localBadgeText}>Local Storage</Text>
-            </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{userProfile?.followers?.total || 0}</Text>
+            <Text style={styles.statLabel}>Followers</Text>
           </View>
-          <MaterialCommunityIcons name="chevron-right" size={24} color="#666" />
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.menuItem}>
-          <MaterialCommunityIcons name="spotify" size={24} color="white" />
-          <Text style={styles.menuItemText}>Spotify Playlists</Text>
-          <MaterialCommunityIcons name="chevron-right" size={24} color="#666" />
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.menuItem}>
-          <MaterialCommunityIcons name="album" size={24} color="white" />
-          <Text style={styles.menuItemText}>Albums</Text>
-          <MaterialCommunityIcons name="chevron-right" size={24} color="#666" />
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.menuItem}>
-          <MaterialCommunityIcons name="account-music" size={24} color="white" />
-          <Text style={styles.menuItemText}>Artists</Text>
-          <MaterialCommunityIcons name="chevron-right" size={24} color="#666" />
-        </TouchableOpacity>
+          
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{followingCount}</Text>
+            <Text style={styles.statLabel}>Following</Text>
+          </View>
+          
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{playlistsCount}</Text>
+            <Text style={styles.statLabel}>Playlists</Text>
+          </View>
+        </View>
       </View>
 
       <View style={styles.section}>
@@ -211,11 +134,6 @@ const ProfileScreen = () => {
           <MaterialCommunityIcons name="logout" size={24} color="#ff5252" />
           <Text style={[styles.menuItemText, styles.logoutText]}>Log Out</Text>
         </TouchableOpacity>
-      </View>
-
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>Spotify Clone App</Text>
-        <Text style={styles.footerText}>Version 1.0.0</Text>
       </View>
     </ScrollView>
   );
@@ -320,16 +238,7 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     color: Colors.error,
-  },
-  footer: {
-    paddingVertical: 20,
-    alignItems: 'center',
-  },
-  footerText: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 4,
-  },
+  }
 });
 
 export default ProfileScreen;

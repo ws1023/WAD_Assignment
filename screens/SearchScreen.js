@@ -12,10 +12,13 @@ import {
   StatusBar,
   Keyboard,
   Dimensions,
+  Alert,
 } from 'react-native';
 import {search} from '../spotifyAPI';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors } from '../theme';
+import { db } from '../database';
+import SQLite from 'react-native-sqlite-storage';
 
 const {width} = Dimensions.get('window');
 
@@ -24,6 +27,30 @@ const SearchScreen = ({navigation}) => {
   const [searchResults, setSearchResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [db, setDb] = useState(null);
+
+  useEffect(() => {
+    const initDB = async () => {
+      try {
+        const database = await SQLite.openDatabase({
+          name: 'mydatabase.db',
+          location: 'default'
+        });
+        setDb(database);
+      } catch (error) {
+        console.error('Error opening database:', error);
+        Alert.alert('Database Error', 'Could not initialize the database');
+      }
+    };
+    
+    initDB();
+    
+    return () => {
+      if (db) {
+        db.close().catch(err => console.error('Error closing db', err));
+      }
+    };
+  }, []);
 
   useEffect(() => {
     // Update the route params when focus state changes
@@ -58,6 +85,24 @@ const SearchScreen = ({navigation}) => {
     Keyboard.dismiss();
   };
 
+  const handleAddToPlaylist = (track) => {
+    // Navigate to SongDetail screen with the track data and open the playlist modal immediately
+    navigation.navigate('SongDetail', { 
+      song: {
+        id: track.id,
+        name: track.name,
+        artist: track.artist,
+        album: track.album,
+        albumArt: track.albumArt,
+        uri: track.uri,
+        duration_ms: track.duration,
+        popularity: 0 // Default value since we might not have this info
+      },
+      fromSearch: true,
+      showPlaylistModal: true // Flag to immediately open the playlist modal
+    });
+  };
+
   const renderEmptySearch = () => (
     <View style={styles.emptySearchContainer}>
       <Text style={styles.emptySearchTitle}>Play what you love</Text>
@@ -71,8 +116,22 @@ const renderTrackItem = ({item}) => (
   <TouchableOpacity 
     style={styles.trackItem}
     onPress={() => {
-      // Navigate to AlbumDetails for now or implement SongDetail screen
-      navigation.navigate('AlbumDetails', { albumId: item.album.id });
+      // Navigate to SongDetail screen with all necessary track data
+      navigation.navigate('SongDetail', { 
+        song: {
+          id: item.id,
+          name: item.name,
+          artist: item.artists.map(artist => artist.name).join(', '),
+          album: item.album.name,
+          albumId: item.album.id,
+          albumArt: item.album.images[0]?.url || 'https://via.placeholder.com/60',
+          uri: item.uri,
+          duration_ms: item.duration_ms,
+          preview_url: item.preview_url,
+          popularity: item.popularity
+        },
+        fromSearch: true // Flag to indicate we came from search
+      });
     }}
   >
     <Image
@@ -89,6 +148,23 @@ const renderTrackItem = ({item}) => (
         {item.artists.map(artist => artist.name).join(', ')}
       </Text>
     </View>
+    <TouchableOpacity 
+      style={styles.addToPlaylistButton}
+      onPress={(e) => {
+        e.stopPropagation(); // Prevent navigating to song detail
+        handleAddToPlaylist({
+          id: item.id,
+          name: item.name,
+          artist: item.artists.map(artist => artist.name).join(', '),
+          album: item.album.name,
+          albumArt: item.album.images[0]?.url || 'https://via.placeholder.com/60',
+          uri: item.uri,
+          duration: item.duration_ms,
+        });
+      }}
+    >
+      <MaterialCommunityIcons name="playlist-plus" size={22} color={Colors.textSecondary} />
+    </TouchableOpacity>
   </TouchableOpacity>
 );
 
@@ -337,6 +413,10 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontSize: 14,
     marginTop: 4,
+  },
+  addToPlaylistButton: {
+    padding: 8,
+    marginLeft: 8,
   },
   // Artist styles
   artistItem: {

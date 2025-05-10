@@ -156,21 +156,6 @@ const ArtistDetailScreen = () => {
         >
           <MaterialCommunityIcons name="arrow-left" size={24} color={Colors.text} />
         </TouchableOpacity>
-        
-        <View style={styles.headerRight}>
-          <TouchableOpacity 
-            style={styles.followButton}
-            onPress={toggleFollow}
-          >
-            <Text style={styles.followButtonText}>
-              {isFollowing ? 'Following' : 'Follow'}
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.menuButton}>
-            <MaterialCommunityIcons name="dots-vertical" size={24} color={Colors.text} />
-          </TouchableOpacity>
-        </View>
       </View>
       
       {/* Content Tabs - Modified to be 50/50 split */}
@@ -203,22 +188,6 @@ const ArtistDetailScreen = () => {
               <Text style={styles.followerCount}>
                 {formatNumber(artist.followers.total)} followers • {artist.genres.slice(0, 2).join(', ')}
               </Text>
-              
-              <View style={styles.actionButtons}>
-                <TouchableOpacity style={styles.shuffleButton}>
-                  <MaterialCommunityIcons name="shuffle-variant" size={20} color="#000" />
-                  <Text style={styles.shuffleText}>Shuffle</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={[styles.playButton, isFollowing ? styles.followingButton : null]}
-                  onPress={toggleFollow}
-                >
-                  <Text style={styles.playButtonText}>
-                    {isFollowing ? 'Following' : 'Follow'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
             </View>
           </View>
 
@@ -366,20 +335,6 @@ const styles = StyleSheet.create({
   actionButtons: {
     flexDirection: 'row',
     marginTop: 16,
-  },
-  shuffleButton: {
-    backgroundColor: Colors.primary,
-    flexDirection: 'row',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 25,
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  shuffleText: {
-    color: '#000',
-    fontWeight: 'bold',
-    marginLeft: 8,
   },
   playButton: {
     borderWidth: 1,

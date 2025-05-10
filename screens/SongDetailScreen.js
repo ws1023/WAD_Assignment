@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   StyleSheet,
   Text,
@@ -23,13 +23,15 @@ import SQLite from 'react-native-sqlite-storage';
 SQLite.enablePromise(true);
 SQLite.DEBUG(true);
 
-const { width } = Dimensions.get('window');
+const {width} = Dimensions.get('window');
 
 // Global database variable
 let db = null;
 
-const SongDetailScreen = ({ route, navigation }) => {
-  const { track } = route.params;
+const SongDetailScreen = ({route, navigation}) => {
+  const [track, setTrack] = useState(
+    route.params?.track || route.params?.song || null,
+  );
   const [isFavorite, setIsFavorite] = useState(false);
   const [showPlaylistModal, setShowPlaylistModal] = useState(false);
   const [playlists, setPlaylists] = useState([]);
@@ -40,17 +42,19 @@ const SongDetailScreen = ({ route, navigation }) => {
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [dbInitialized, setDbInitialized] = useState(false);
 
+  // ...other state variables...
+
   // Initialize database
   useEffect(() => {
     const initializeDatabase = async () => {
       try {
         // Open database
-        db = await SQLite.openDatabase({ 
-          name: 'mydatabase.db', 
-          location: 'default' 
+        db = await SQLite.openDatabase({
+          name: 'mydatabase.db',
+          location: 'default',
         });
         console.log('Database opened successfully');
-        
+
         // Create tables if they don't exist
         await createTables();
         setDbInitialized(true);
@@ -59,17 +63,61 @@ const SongDetailScreen = ({ route, navigation }) => {
         Alert.alert('Database Error', 'Failed to initialize the database.');
       }
     };
-    
+
     initializeDatabase();
-    
+
     // Cleanup on component unmount
     return () => {
       if (db) {
-        db.close().then(() => console.log('Database closed'))
+        db.close()
+          .then(() => console.log('Database closed'))
           .catch(error => console.error('Error closing database:', error));
       }
     };
   }, []);
+
+  useEffect(() => {
+    // Standardize track format whether coming from search or other navigation
+    if (route.params?.song) {
+      // If we received a flattened song object (from search)
+      const songData = route.params.song;
+
+      // Create a compatible track object
+      const formattedTrack = {
+        ...songData,
+        // Make sure album exists in expected format
+        album: songData.album
+          ? typeof songData.album === 'string'
+            ? {
+                name: songData.album,
+                id: songData.albumId,
+                images: [{url: songData.albumArt}],
+              }
+            : songData.album
+          : {name: 'Unknown Album', images: []},
+        // Make sure artists exists as an array
+        artists: songData.artists
+          ? songData.artists
+          : songData.artist
+          ? [{name: songData.artist}]
+          : [{name: 'Unknown Artist'}],
+      };
+
+      setTrack(formattedTrack);
+    } else {
+      // Normal track loading logic...
+    }
+  }, [route.params]);
+
+  useEffect(() => {
+    // If we're coming from search and should show playlist modal immediately
+    if (route.params?.showPlaylistModal) {
+      // Short delay to ensure component is fully mounted
+      setTimeout(() => {
+        setShowPlaylistModal(true);
+      }, 100);
+    }
+  }, [route.params]);
 
   // Create necessary tables
   const createTables = async () => {
@@ -85,7 +133,7 @@ const SongDetailScreen = ({ route, navigation }) => {
           duration INTEGER
         );
       `);
-      
+
       await db.executeSql(`
         CREATE TABLE IF NOT EXISTS playlists (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -93,7 +141,7 @@ const SongDetailScreen = ({ route, navigation }) => {
           createdAt INTEGER NOT NULL
         );
       `);
-      
+
       await db.executeSql(`
         CREATE TABLE IF NOT EXISTS playlist_songs (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -105,7 +153,7 @@ const SongDetailScreen = ({ route, navigation }) => {
           UNIQUE (playlistId, songId)
         );
       `);
-      
+
       await db.executeSql(`
         CREATE TABLE IF NOT EXISTS liked_songs (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -115,7 +163,7 @@ const SongDetailScreen = ({ route, navigation }) => {
           UNIQUE (songId)
         );
       `);
-      
+
       console.log('Tables created successfully');
     } catch (error) {
       console.error('Error creating tables:', error);
@@ -126,7 +174,7 @@ const SongDetailScreen = ({ route, navigation }) => {
   // Fetch playlists from the database
   const fetchPlaylists = async () => {
     if (!dbInitialized) return;
-    
+
     setIsLoading(true);
     try {
       const [results] = await db.executeSql(`
@@ -135,12 +183,12 @@ const SongDetailScreen = ({ route, navigation }) => {
         FROM playlists p
         ORDER BY p.createdAt DESC;
       `);
-      
+
       const fetchedPlaylists = [];
       for (let i = 0; i < results.rows.length; i++) {
         fetchedPlaylists.push(results.rows.item(i));
       }
-      
+
       setPlaylists(fetchedPlaylists);
       console.log('Fetched Playlists:', fetchedPlaylists);
     } catch (error) {
@@ -154,13 +202,13 @@ const SongDetailScreen = ({ route, navigation }) => {
   // Check if song is in liked songs
   const checkIfSongIsLiked = async () => {
     if (!dbInitialized) return;
-    
+
     try {
       const [results] = await db.executeSql(
         `SELECT * FROM liked_songs WHERE songId = ?;`,
-        [track.id]
+        [track.id],
       );
-      
+
       setIsLikedSongsSelected(results.rows.length > 0);
     } catch (error) {
       console.error('Error checking if song is liked:', error);
@@ -170,18 +218,18 @@ const SongDetailScreen = ({ route, navigation }) => {
   // Check which playlists this song is already in
   const checkSongPlaylists = async () => {
     if (!dbInitialized) return;
-    
+
     try {
       const [results] = await db.executeSql(
         `SELECT playlistId FROM playlist_songs WHERE songId = ?;`,
-        [track.id]
+        [track.id],
       );
-      
+
       const playlistIds = [];
       for (let i = 0; i < results.rows.length; i++) {
         playlistIds.push(results.rows.item(i).playlistId);
       }
-      
+
       setSelectedPlaylists(playlistIds);
     } catch (error) {
       console.error('Error checking song playlists:', error);
@@ -197,30 +245,30 @@ const SongDetailScreen = ({ route, navigation }) => {
   }, [showPlaylistModal, dbInitialized]);
 
   // Add song to a playlist
-  const addToPlaylist = async (playlistId) => {
+  const addToPlaylist = async playlistId => {
     if (!dbInitialized) return;
-    
+
     // Toggle selection visually
     if (selectedPlaylists.includes(playlistId)) {
       setSelectedPlaylists(selectedPlaylists.filter(id => id !== playlistId));
     } else {
       setSelectedPlaylists([...selectedPlaylists, playlistId]);
     }
-    
+
     const now = Math.floor(Date.now() / 1000);
 
     try {
       // Check if song already exists in playlist
       const [checkResults] = await db.executeSql(
         `SELECT * FROM playlist_songs WHERE playlistId = ? AND songId = ?`,
-        [playlistId, track.id]
+        [playlistId, track.id],
       );
-      
+
       if (checkResults.rows.length > 0) {
         // Song already exists in playlist, remove it
         await db.executeSql(
           `DELETE FROM playlist_songs WHERE playlistId = ? AND songId = ?`,
-          [playlistId, track.id]
+          [playlistId, track.id],
         );
         console.log('Song removed from playlist');
       } else {
@@ -231,20 +279,20 @@ const SongDetailScreen = ({ route, navigation }) => {
           [
             track.id,
             track.name,
-            track.artists.map((artist) => artist.name).join(', '),
+            track.artists.map(artist => artist.name).join(', '),
             track.album.name,
             track.album.images[0]?.url || null,
             track.uri,
             track.duration_ms,
-          ]
+          ],
         );
-        
+
         // Add song to playlist
         await db.executeSql(
           `INSERT INTO playlist_songs (playlistId, songId, addedAt) VALUES (?, ?, ?)`,
-          [playlistId, track.id, now]
+          [playlistId, track.id, now],
         );
-        
+
         console.log('Song added to playlist successfully');
       }
     } catch (error) {
@@ -256,10 +304,10 @@ const SongDetailScreen = ({ route, navigation }) => {
   // Toggle liked songs
   const toggleLikedSongs = async () => {
     if (!dbInitialized) return;
-    
+
     const now = Math.floor(Date.now() / 1000);
     setIsLikedSongsSelected(!isLikedSongsSelected);
-    
+
     try {
       if (!isLikedSongsSelected) {
         // Make sure song exists in songs table
@@ -269,28 +317,27 @@ const SongDetailScreen = ({ route, navigation }) => {
           [
             track.id,
             track.name,
-            track.artists.map((artist) => artist.name).join(', '),
+            track.artists.map(artist => artist.name).join(', '),
             track.album.name,
             track.album.images[0]?.url || null,
             track.uri,
             track.duration_ms,
-          ]
+          ],
         );
-        
+
         // Add to liked songs
         await db.executeSql(
           `INSERT OR IGNORE INTO liked_songs (songId, addedAt) VALUES (?, ?)`,
-          [track.id, now]
+          [track.id, now],
         );
-        
+
         console.log('Song added to liked songs');
       } else {
         // Remove from liked songs
-        await db.executeSql(
-          `DELETE FROM liked_songs WHERE songId = ?`,
-          [track.id]
-        );
-        
+        await db.executeSql(`DELETE FROM liked_songs WHERE songId = ?`, [
+          track.id,
+        ]);
+
         console.log('Song removed from liked songs');
       }
     } catch (error) {
@@ -302,20 +349,18 @@ const SongDetailScreen = ({ route, navigation }) => {
   // Clear all selections
   const clearAllSavedSelections = async () => {
     if (!dbInitialized) return;
-    
+
     try {
       // Remove song from all playlists
-      await db.executeSql(
-        `DELETE FROM playlist_songs WHERE songId = ?`,
-        [track.id]
-      );
-      
+      await db.executeSql(`DELETE FROM playlist_songs WHERE songId = ?`, [
+        track.id,
+      ]);
+
       // Remove from liked songs
-      await db.executeSql(
-        `DELETE FROM liked_songs WHERE songId = ?`,
-        [track.id]
-      );
-      
+      await db.executeSql(`DELETE FROM liked_songs WHERE songId = ?`, [
+        track.id,
+      ]);
+
       console.log('Song removed from all collections');
       setSelectedPlaylists([]);
       setIsLikedSongsSelected(false);
@@ -335,11 +380,11 @@ const SongDetailScreen = ({ route, navigation }) => {
       // Create the playlist
       const [playlistResult] = await db.executeSql(
         `INSERT INTO playlists (name, createdAt) VALUES (?, ?)`,
-        [newPlaylistName, now]
+        [newPlaylistName, now],
       );
-      
+
       const newPlaylistId = playlistResult.insertId;
-      
+
       // Make sure song exists in songs table
       await db.executeSql(
         `INSERT OR IGNORE INTO songs (id, name, artist, album, albumArt, uri, duration)
@@ -347,24 +392,24 @@ const SongDetailScreen = ({ route, navigation }) => {
         [
           track.id,
           track.name,
-          track.artists.map((artist) => artist.name).join(', '),
+          track.artists.map(artist => artist.name).join(', '),
           track.album.name,
           track.album.images[0]?.url || null,
           track.uri,
           track.duration_ms,
-        ]
+        ],
       );
-      
+
       // Add song to the new playlist
       await db.executeSql(
         `INSERT INTO playlist_songs (playlistId, songId, addedAt) VALUES (?, ?, ?)`,
-        [newPlaylistId, track.id, now]
+        [newPlaylistId, track.id, now],
       );
-      
+
       console.log('New playlist created and song added successfully');
       setNewPlaylistName('');
       setShowCreatePlaylistModal(false);
-      
+
       // Update playlists and select the new one
       await fetchPlaylists();
       setSelectedPlaylists([...selectedPlaylists, newPlaylistId]);
@@ -377,27 +422,45 @@ const SongDetailScreen = ({ route, navigation }) => {
   return (
     <LinearGradient
       colors={['#704214', '#2C1E0F', '#121212']}
-      style={styles.container}
-    >
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      style={styles.container}>
+      <StatusBar
+        barStyle="light-content"
+        translucent
+        backgroundColor="transparent"
+      />
+
+      {/* Back Button */}
+      <TouchableOpacity
+        onPress={() => navigation.goBack()}
+        style={styles.customBackButton}>
+        <MaterialCommunityIcons name="arrow-left" size={28} color="white" />
+      </TouchableOpacity>
 
       <View style={styles.content}>
         {/* Album Artwork */}
         <Image
-          source={{ uri: track.album?.images[0]?.url || 'https://via.placeholder.com/300' }}
+          source={{
+            uri:
+              track?.albumArt ||
+              track?.album?.images?.[0]?.url ||
+              'https://community.spotify.com/t5/image/serverpage/image-id/55829iC2AD64ADB887E2A5',
+          }}
           style={styles.albumCover}
           resizeMode="contain"
         />
 
         {/* Track Info */}
-        <Text style={styles.trackName}>{track.name}</Text>
-        <Text style={styles.artistName}>{track.artists.map((artist) => artist.name).join(', ')}</Text>
+        <Text style={styles.trackName}>{track?.name || 'Unknown Track'}</Text>
+        <Text style={styles.artistName}>
+          {track?.artists
+            ? track.artists.map(artist => artist?.name || 'Unknown').join(', ')
+            : 'Unknown Artist'}
+        </Text>
 
         {/* Action Buttons */}
         <TouchableOpacity
           style={styles.addToPlaylistButton}
-          onPress={() => setShowPlaylistModal(true)}
-        >
+          onPress={() => setShowPlaylistModal(true)}>
           <Text style={styles.addToPlaylistText}>Add to playlist</Text>
         </TouchableOpacity>
 
@@ -411,8 +474,7 @@ const SongDetailScreen = ({ route, navigation }) => {
         visible={showPlaylistModal}
         animationType="slide"
         transparent={true}
-        onRequestClose={() => setShowPlaylistModal(false)}
-      >
+        onRequestClose={() => setShowPlaylistModal(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             {/* Header */}
@@ -421,14 +483,13 @@ const SongDetailScreen = ({ route, navigation }) => {
                 <Text style={styles.cancelText}>Cancel</Text>
               </TouchableOpacity>
               <Text style={styles.modalTitle}>Add to playlist</Text>
-              <View style={{ width: 50 }} /> 
+              <View style={{width: 50}} />
             </View>
 
             {/* New Playlist Button */}
             <TouchableOpacity
               style={styles.newPlaylistButton}
-              onPress={() => setShowCreatePlaylistModal(true)}
-            >
+              onPress={() => setShowCreatePlaylistModal(true)}>
               <Text style={styles.newPlaylistText}>New playlist</Text>
             </TouchableOpacity>
 
@@ -441,59 +502,61 @@ const SongDetailScreen = ({ route, navigation }) => {
             </View>
 
             {/* Liked Songs with Checkmark */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.playlistItem}
-              onPress={toggleLikedSongs}
-            >
-              <View style={styles.playlistIconContainer}>
-                <MaterialCommunityIcons name="heart" size={24} color="#fff" style={styles.playlistIcon} />
-              </View>
-              <View style={styles.playlistInfoContainer}>
-                <Text style={styles.playlistName}>Liked Songs</Text>
-                <View style={styles.playlistIconSmall}>
-                  <MaterialCommunityIcons name="arrow-up-right" size={14} color="#1DB954" />
-                </View>
-              </View>
+              onPress={toggleLikedSongs}>
               <View style={styles.checkContainer}>
                 {isLikedSongsSelected && (
-                  <MaterialCommunityIcons name="check-circle" size={24} color="#1DB954" />
+                  <MaterialCommunityIcons
+                    name="check-circle"
+                    size={24}
+                    color="#1DB954"
+                  />
                 )}
               </View>
             </TouchableOpacity>
 
             {/* Most Relevant Section */}
             <Text style={styles.sectionTitle}>Most relevant</Text>
-            
+
             {isLoading ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#1DB954" />
               </View>
             ) : (
               <ScrollView style={styles.playlistsContainer}>
-                {playlists.map((playlist) => (
-                  <TouchableOpacity 
-                    key={playlist.id} 
+                {playlists.map(playlist => (
+                  <TouchableOpacity
+                    key={playlist.id}
                     style={styles.playlistItem}
-                    onPress={() => addToPlaylist(playlist.id)}
-                  >
+                    onPress={() => addToPlaylist(playlist.id)}>
                     <View style={styles.playlistCover}>
-                      <MaterialCommunityIcons name="music-note" size={24} color="#fff" />
+                      <MaterialCommunityIcons
+                        name="music-note"
+                        size={24}
+                        color="#fff"
+                      />
                     </View>
                     <View style={styles.playlistInfoContainer}>
                       <Text style={styles.playlistName}>{playlist.name}</Text>
                       <Text style={styles.playlistDetails}>
-                        {playlist.songCount > 0 ? `${playlist.songCount} songs` : 'Empty'}
+                        {playlist.songCount > 0
+                          ? `${playlist.songCount} songs`
+                          : 'Empty'}
                       </Text>
                     </View>
                     <View style={styles.radioContainer}>
-                      <View style={[
-                        styles.radioButton,
-                        selectedPlaylists.includes(playlist.id) && styles.radioButtonSelected
-                      ]} />
+                      <View
+                        style={[
+                          styles.radioButton,
+                          selectedPlaylists.includes(playlist.id) &&
+                            styles.radioButtonSelected,
+                        ]}
+                      />
                     </View>
                   </TouchableOpacity>
                 ))}
-                
+
                 {playlists.length === 0 && (
                   <Text style={styles.emptyText}>
                     No playlists found. Create a new playlist to get started.
@@ -501,13 +564,12 @@ const SongDetailScreen = ({ route, navigation }) => {
                 )}
               </ScrollView>
             )}
-            
+
             {/* Done Button */}
             <View style={styles.doneButtonContainer}>
               <TouchableOpacity
                 style={styles.doneButton}
-                onPress={() => setShowPlaylistModal(false)}
-              >
+                onPress={() => setShowPlaylistModal(false)}>
                 <Text style={styles.doneButtonText}>Done</Text>
               </TouchableOpacity>
             </View>
@@ -520,25 +582,28 @@ const SongDetailScreen = ({ route, navigation }) => {
         visible={showCreatePlaylistModal}
         animationType="slide"
         transparent={true}
-        onRequestClose={() => setShowCreatePlaylistModal(false)}
-      >
+        onRequestClose={() => setShowCreatePlaylistModal(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.createPlaylistModal}>
             <View style={styles.modalHeader}>
-              <TouchableOpacity onPress={() => setShowCreatePlaylistModal(false)}>
+              <TouchableOpacity
+                onPress={() => setShowCreatePlaylistModal(false)}>
                 <Text style={styles.cancelText}>Cancel</Text>
               </TouchableOpacity>
               <Text style={styles.modalTitle}>Create playlist</Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={createNewPlaylist}
-                disabled={!newPlaylistName.trim()}
-              >
-                <Text style={[styles.createText, !newPlaylistName.trim() && styles.disabledText]}>
+                disabled={!newPlaylistName.trim()}>
+                <Text
+                  style={[
+                    styles.createText,
+                    !newPlaylistName.trim() && styles.disabledText,
+                  ]}>
                   Create
                 </Text>
               </TouchableOpacity>
             </View>
-            
+
             <TextInput
               style={styles.playlistNameInput}
               placeholder="Playlist name"
@@ -787,6 +852,18 @@ const styles = StyleSheet.create({
   },
   disabledText: {
     opacity: 0.5,
+  },
+  customBackButton: {
+    position: 'absolute',
+    top: 40,
+    left: 16,
+    zIndex: 10,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

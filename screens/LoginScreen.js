@@ -5,12 +5,18 @@ import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authorize, refresh, prefetchConfiguration } from 'react-native-app-auth';
+import WebSocketService from '../services/WebSocketService';
+import { getUserProfile } from '../spotifyAPI';  
+import SpotifyWelcomeAlert from '../components/SpotifyWelcomeAlert';
 
 const LoginScreen = () => {
   const navigation = useNavigation();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [processingAuth, setProcessingAuth] = useState(false);
+  const [showWelcomeAlert, setShowWelcomeAlert] = useState(false);
+  const [welcomeMessage, setWelcomeMessage] = useState('');
+  const [userName, setUserName] = useState('');
 
   // Configure Spotify auth settings
   const spotifyAuthConfig = {
@@ -28,7 +34,7 @@ const LoginScreen = () => {
       'user-read-playback-state',
       'user-modify-playback-state',
       'user-read-currently-playing',
-      'user-read-recently-played'  // Add this line
+      'user-read-recently-played'  
     ],
     serviceConfiguration: {
       authorizationEndpoint: 'https://accounts.spotify.com/authorize',
@@ -72,6 +78,41 @@ const LoginScreen = () => {
           
           // Save the authentication result
           await saveAuthData(authResult);
+          
+          // Initialize WebSocket connection
+          const userProfile = await getUserProfile();
+          if (userProfile) {
+            const wsService = WebSocketService.getInstance();
+            wsService.connect(userProfile.id);
+            
+            // Listen for welcome message with proper navigation and auto-dismiss
+            wsService.on('welcome', (message) => {
+              const welcomeAlert = Alert.alert(
+                "Welcome to Spotify",
+                `${message}, ${userProfile.display_name}!`,
+                [{ 
+                  text: "Let's go!", 
+                  onPress: () => {
+                    navigation.reset({
+                      index: 0,
+                      routes: [{ name: 'Main' }],
+                    });
+                  },
+                  style: "default",
+                }],
+                { cancelable: false }
+              );
+              
+              // Auto-dismiss after 5 seconds
+              setTimeout(() => {
+                // Check if user hasn't already dismissed the alert
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: 'Main' }],
+                });
+              }, 5000);
+            });
+          }
           
           // Navigate to the main app
           navigation.reset({
@@ -430,6 +471,21 @@ const LoginScreen = () => {
           <Text style={styles.authButtonText}>Sign In with Facebook</Text>
         </TouchableOpacity>
       </View>
+
+      {showWelcomeAlert && (
+        <SpotifyWelcomeAlert 
+          message={welcomeMessage}
+          username={userName}
+          onDismiss={() => {
+            setShowWelcomeAlert(false);
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Main' }],
+            });
+          }}
+          autoDismissTime={5000}
+        />
+      )}
     </SafeAreaView>
   );
 };

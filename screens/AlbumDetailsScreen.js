@@ -66,24 +66,6 @@ const AlbumDetailsScreen = () => {
           style={styles.backButton}>
           <MaterialCommunityIcons name="arrow-left" size={28} color="white" />
         </TouchableOpacity>
-
-        <View style={styles.headerRight}>
-          <TouchableOpacity onPress={toggleFavorite} style={styles.iconButton}>
-            <MaterialCommunityIcons
-              name={isFavorite ? "check-circle" : "plus-circle-outline"}
-              size={28}
-              color={isFavorite ? Colors.primary : Colors.text}
-            />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.iconButton}>
-            <MaterialCommunityIcons
-              name="dots-vertical"
-              size={28}
-              color="white"
-            />
-          </TouchableOpacity>
-        </View>
       </View>
 
       {albumDetails && (
@@ -102,10 +84,6 @@ const AlbumDetailsScreen = () => {
               <Text style={styles.albumCreator}>
                 by {albumDetails.artists.map(artist => artist.name).join(', ')}
               </Text>
-
-              <TouchableOpacity style={styles.shuffleButton}>
-                <Text style={styles.shuffleButtonText}>Shuffle play</Text>
-              </TouchableOpacity>
             </View>
           )}
           renderItem={({item, index}) => (
@@ -178,18 +156,6 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontSize: 16,
     marginBottom: 24,
-  },
-  shuffleButton: {
-    backgroundColor: Colors.primary,
-    paddingVertical: 12,
-    paddingHorizontal: 40,
-    borderRadius: 30,
-    marginBottom: 16,
-  },
-  shuffleButtonText: {
-    color: 'black',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
   trackItem: {
     flexDirection: 'row',

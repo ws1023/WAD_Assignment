@@ -84,6 +84,13 @@ const PlaylistDetail = () => {
   useEffect(() => {
     navigation.setOptions({
       title: playlistInfo.name,
+      headerLeft: () => (
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={{marginLeft: 16}}>
+          <MaterialCommunityIcons name="arrow-left" size={28} color="white" />
+        </TouchableOpacity>
+      ),
       headerRight: () => (
         <TouchableOpacity 
           style={{ paddingRight: 16 }} 
@@ -302,6 +309,12 @@ const PlaylistDetail = () => {
   const renderPlaylistHeader = () => {
     return (
       <View style={styles.playlistHeader}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.customBackButton}>
+          <MaterialCommunityIcons name="arrow-left" size={28} color="white" />
+        </TouchableOpacity>
+        
         {/* Playlist Cover */}
         <View style={styles.coverContainer}>
           {isLocal && playlistInfo.albumArts && playlistInfo.albumArts.length > 1 ? (
@@ -319,6 +332,7 @@ const PlaylistDetail = () => {
                 </View>
               ))}
             </View>
+            
           ) : playlistInfo.image ? (
             <Image source={{ uri: playlistInfo.image }} style={styles.coverImage} />
           ) : (
@@ -342,24 +356,7 @@ const PlaylistDetail = () => {
             {playlistInfo.totalTracks} {playlistInfo.totalTracks === 1 ? 'track' : 'tracks'}
           </Text>
         </View>
-        
-        {/* Playlist Actions */}
-        <View style={styles.actionButtons}>
-          <TouchableOpacity style={styles.shuffleButton}>
-            <MaterialIcons name="shuffle" size={24} color={Colors.text} />
-            <Text style={styles.shuffleText}>Shuffle Play</Text>
-          </TouchableOpacity>
-          
-          {isLocal && (
-            <TouchableOpacity 
-              style={styles.addButton}
-              onPress={navigateToAddTracks}
-            >
-              <Ionicons name="add" size={24} color={Colors.text} />
-              <Text style={styles.addText}>Add Tracks</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+
       </View>
     );
   };
@@ -556,6 +553,18 @@ const styles = StyleSheet.create({
   },
   playlistHeader: {
     padding: 16,
+  },
+  customBackButton: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    zIndex: 10,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   coverContainer: {
     width: 200,
