@@ -134,9 +134,6 @@ const StatsScreen = () => {
           // Add mock stream and duration data since Spotify API doesn't provide this
           const tracksWithStats = tracks.items.map((track, index) => ({
             ...track,
-            rank: index + 1,
-            streams: Math.floor(Math.random() * 300) + 200 - (index * 10),
-            minutes: Math.floor(Math.random() * 1000) + 500 - (index * 20)
           }));
           setTopTracks(tracksWithStats);
         }
@@ -161,13 +158,9 @@ const StatsScreen = () => {
               albums[albumId] = {
                 ...track.album,
                 tracks: [track],
-                streams: Math.floor(Math.random() * 200) + 100,
-                minutes: Math.floor(Math.random() * 800) + 300
               };
             } else {
               albums[albumId].tracks.push(track);
-              albums[albumId].streams += Math.floor(Math.random() * 50);
-              albums[albumId].minutes += Math.floor(Math.random() * 100);
             }
           });
           const albumsList = Object.values(albums).map((album, index) => ({
@@ -190,14 +183,10 @@ const StatsScreen = () => {
                   name: genre,
                   count: 1,
                   artists: [artist],
-                  streams: Math.floor(Math.random() * 200) + 100,
-                  minutes: Math.floor(Math.random() * 800) + 300
                 };
               } else {
                 genreCount[genre].count += 1;
                 genreCount[genre].artists.push(artist);
-                genreCount[genre].streams += Math.floor(Math.random() * 50);
-                genreCount[genre].minutes += Math.floor(Math.random() * 100);
               }
             });
           });
@@ -265,9 +254,6 @@ const StatsScreen = () => {
           {item.artists.map(artist => artist.name).join(', ')}
         </Text>
         <View style={styles.trackStats}>
-          <Text style={styles.trackStreams}>{item.streams} streams</Text>
-          <Text style={styles.trackDot}>•</Text>
-          <Text style={styles.trackMinutes}>{item.minutes} minutes</Text>
         </View>
       </View>
     </View>
@@ -289,9 +275,6 @@ const StatsScreen = () => {
           {item.genres.slice(0, 2).join(', ')}
         </Text>
         <View style={styles.trackStats}>
-          <Text style={styles.trackStreams}>{Math.floor(Math.random() * 300) + 200} streams</Text>
-          <Text style={styles.trackDot}>•</Text>
-          <Text style={styles.trackMinutes}>{Math.floor(Math.random() * 1000) + 500} minutes</Text>
         </View>
       </View>
     </View>
@@ -313,9 +296,6 @@ const StatsScreen = () => {
           {item.artists.map(artist => artist.name).join(', ')}
         </Text>
         <View style={styles.trackStats}>
-          <Text style={styles.trackStreams}>{item.streams} streams</Text>
-          <Text style={styles.trackDot}>•</Text>
-          <Text style={styles.trackMinutes}>{item.minutes} minutes</Text>
         </View>
       </View>
     </View>
@@ -336,9 +316,6 @@ const StatsScreen = () => {
           {item.artists.slice(0, 2).map(artist => artist.name).join(', ')}
         </Text>
         <View style={styles.trackStats}>
-          <Text style={styles.trackStreams}>{item.streams} streams</Text>
-          <Text style={styles.trackDot}>•</Text>
-          <Text style={styles.trackMinutes}>{item.minutes} minutes</Text>
         </View>
       </View>
     </View>
@@ -352,14 +329,14 @@ const StatsScreen = () => {
             <>
               <Text style={styles.headerTitle}>Stats</Text>
               <TouchableOpacity onPress={() => setCurrentView('top')}>
-                <MaterialCommunityIcons name="chart-bar" size={24} color={Colors.text} />
+                <MaterialCommunityIcons name="trending-up" size={24} color={Colors.text} />
               </TouchableOpacity>
             </>
           ) : (
             <>
               <View style={styles.topHeader}>
                 <TouchableOpacity onPress={() => setCurrentView('stats')}>
-                  <MaterialCommunityIcons name="menu" size={24} color={Colors.text} />
+                  <MaterialCommunityIcons name="chart-bar" size={24} color={Colors.text} />
                 </TouchableOpacity>
                 <View style={styles.topTitleContainer}>
                   <Text style={styles.topTitle}>Top</Text>

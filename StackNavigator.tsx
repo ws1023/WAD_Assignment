@@ -6,11 +6,18 @@ import LibraryScreen from "./screens/LibraryScreen";
 import StatsScreen from "./screens/StatsScreen";
 import ProfileScreen from "./screens/ProfileScreen";
 import LoginScreen from "./screens/LoginScreen";
+import PlaybackScreen from './screens/PlaybackScreen';
+import AlbumDetailsScreen from './screens/AlbumDetailsScreen'; 
+import PlaylistDetailScreen from './screens/PlaylistDetailScreen'; 
+import ArtistDetailScreen from './screens/ArtistDetailScreen'; 
 import { createStackNavigator } from "@react-navigation/stack";
-import { NavigationContainer } from "@react-navigation/native";
+import { NavigationContainer, useNavigation, useRoute, getFocusedRouteNameFromRoute } from "@react-navigation/native";
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { TouchableOpacity, Image, View, StyleSheet } from "react-native";
 import { Colors } from './theme';
+import { useEffect } from 'react';
+import PlaybackBar from './components/PlaybackBar';
+import { usePlayback } from './contexts/PlaybackContext';
 
 const Tab = createBottomTabNavigator();
 
@@ -40,80 +47,100 @@ const screenOptions = ({ navigation }) => ({
 });
 
 function BottomTabs() {
+  const { startPolling, stopPolling } = usePlayback();
+  const route = useRoute();
+  const navigation = useNavigation(); 
+  
+  // Start polling for playback state when component mounts
+  useEffect(() => {
+    startPolling();
+    return () => stopPolling();
+  }, []);
+
+  // Get the currently focused tab name
+  const currentRouteName = getFocusedRouteNameFromRoute(route) || 'Home';
+  
   return (
-    <Tab.Navigator
-      screenOptions={{
-        tabBarStyle: {
-          backgroundColor: Colors.background,
-          borderTopColor: Colors.background,
-          height: 60,
-          paddingBottom: 10,
-        },
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.textSecondary,
-        tabBarLabelStyle: {
-          marginTop: -15, // 负边距拉近与图标的距离
-          textAlign: 'center'
-        },
-      }}
-    >
-      <Tab.Screen
-        name="Home"
-        component={HomeScreen}
-        options={({ navigation }) => ({
-          ...screenOptions({ navigation }),
-          tabBarIcon: ({ focused, color }) => (
-            <MaterialCommunityIcons
-              name="home"
-              size={focused ? 28 : 24}
-              color={color}
-            />
-          ),
-        })}
-      />
-      <Tab.Screen
-        name="Search"
-        component={SearchScreen}
-        options={({ navigation }) => ({
-          ...screenOptions({ navigation }),
-          tabBarIcon: ({ focused, color }) => (
-            <MaterialCommunityIcons
-              name="magnify"
-              size={focused ? 28 : 24}
-              color={color}
-            />
-          ),
-        })}
-      />
-      <Tab.Screen
-        name="Library"
-        component={LibraryScreen}
-        options={({ navigation }) => ({
-          ...screenOptions({ navigation }),
-          tabBarIcon: ({ focused, color }) => (
-            <MaterialCommunityIcons
-              name="bookshelf"
-              size={focused ? 28 : 24}
-              color={color}
-            />
-          ),
-        })}
-      />
-      <Tab.Screen
-        name="Stats"
-        component={StatsScreen}
-        options={({ navigation }) => ({
-          ...screenOptions({ navigation }),
-          tabBarIcon: ({ focused, color }) => (
-            <MaterialCommunityIcons
-              name="chart-bar"
-              size={focused ? 28 : 24}
-              color={color}
-            />
-          ),
-        })}
-      />
-    </Tab.Navigator>
+    <View style={{ flex: 1 }}>
+      <Tab.Navigator
+        screenOptions={{
+          tabBarStyle: {
+            backgroundColor: Colors.background,
+            borderTopColor: Colors.background,
+            height: 60,
+            paddingBottom: 10,
+          },
+          tabBarActiveTintColor: Colors.primary,
+          tabBarInactiveTintColor: Colors.textSecondary,
+          tabBarLabelStyle: {
+            marginTop: -15,
+            textAlign: 'center'
+          },
+        }}
+      >
+        <Tab.Screen
+          name="Home"
+          component={HomeScreen}
+          options={({ navigation }) => ({
+            ...screenOptions({ navigation }),
+            tabBarIcon: ({ focused, color }) => (
+              <MaterialCommunityIcons
+                name="home"
+                size={focused ? 28 : 24}
+                color={color}
+              />
+            ),
+          })}
+        />
+        <Tab.Screen
+          name="Search"
+          component={SearchScreen}
+          options={({ navigation }) => ({
+            ...screenOptions({ navigation }),
+            tabBarIcon: ({ focused, color }) => (
+              <MaterialCommunityIcons
+                name="magnify"
+                size={focused ? 28 : 24}
+                color={color}
+              />
+            ),
+          })}
+        />
+        <Tab.Screen
+          name="Library"
+          component={LibraryScreen}
+          options={({ navigation }) => ({
+            ...screenOptions({ navigation }),
+            tabBarIcon: ({ focused, color }) => (
+              <MaterialCommunityIcons
+                name="bookshelf"
+                size={focused ? 28 : 24}
+                color={color}
+              />
+            ),
+          })}
+        />
+        <Tab.Screen
+          name="Stats"
+          component={StatsScreen}
+          options={({ navigation }) => ({
+            ...screenOptions({ navigation }),
+            tabBarIcon: ({ focused, color }) => (
+              <MaterialCommunityIcons
+                name="chart-bar"
+                size={focused ? 28 : 24}
+                color={color}
+              />
+            ),
+          })}
+        />
+      </Tab.Navigator>
+      
+      {/* Only show PlaybackBar on Home, Search, and Library screens */}
+      {currentRouteName !== "Stats" && (
+        <PlaybackBar onPress={() => navigation.navigate('Playback')} />
+      )}
+    </View>
   );
 }
 
@@ -139,10 +166,33 @@ function Navigation() {
           options={{
             headerStyle: {
               backgroundColor: Colors.cardBackground,
-              elevation: 0, // Add this to be consistent with other headers
+              elevation: 0,
             },
             headerTintColor: Colors.text,
           }}
+        />
+        <Stack.Screen
+          name="Playback"
+          component={PlaybackScreen}
+          options={{ headerShown: false }}
+        />
+        {/* Add the AlbumDetails screen */}
+        <Stack.Screen  
+          name="AlbumDetails" 
+          component={AlbumDetailsScreen}
+          options={{ headerShown: false }} 
+        />
+        {/* Add the PlaylistDetails screen */}
+        <Stack.Screen  
+          name="PlaylistDetails" 
+          component={PlaylistDetailScreen}
+          options={{ headerShown: false }} 
+        />
+        {/* Add the ArtistDetails screen */}
+        <Stack.Screen
+          name="ArtistDetails"
+          component={ArtistDetailScreen}
+          options={{ headerShown: false }}
         />
       </Stack.Navigator>
     </NavigationContainer>
