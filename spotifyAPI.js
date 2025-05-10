@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {refresh} from 'react-native-app-auth';
+import {refresh} from 'react-native-app-auth';
 
 // Base URL for Spotify API
 const SPOTIFY_API_BASE = 'https://api.spotify.com/v1';
@@ -31,15 +32,18 @@ export const getValidToken = async () => {
     if (token && expirationDate) {
       const now = new Date().getTime();
 
+
       // If token is expired, refresh it
       if (now >= parseInt(expirationDate) && refreshToken) {
         console.log('Token expired, refreshing...');
         return await refreshAccessToken(refreshToken);
       }
 
+
       // If token is still valid, return it
       return token;
     }
+
 
     // No valid token found
     return null;
@@ -51,11 +55,13 @@ export const getValidToken = async () => {
 
 // Refresh the access token using the refresh token
 const refreshAccessToken = async refreshToken => {
+const refreshAccessToken = async refreshToken => {
   try {
     console.log('Attempting to refresh token');
     const result = await refresh(authConfig, {
       refreshToken: refreshToken,
     });
+
 
     // Calculate new expiration time
     const expirationDate = new Date().getTime() + result.expiresIn * 1000;
@@ -206,12 +212,20 @@ export const search = async (
   types = ['track', 'artist', 'album'],
   limit = 20,
 ) => {
+export const search = async (
+  query,
+  types = ['track', 'artist', 'album'],
+  limit = 20,
+) => {
   const token = await getValidToken();
   if (!token) return { error: 'No valid token' };
 
   try {
     const typeString = types.join(',');
     const response = await fetch(
+      `${SPOTIFY_API_BASE}/search?q=${encodeURIComponent(
+        query,
+      )}&type=${typeString}&limit=${limit}`,
       `${SPOTIFY_API_BASE}/search?q=${encodeURIComponent(
         query,
       )}&type=${typeString}&limit=${limit}`,
@@ -266,6 +280,7 @@ export const getRecentlyPlayed = async (limit = 50) => {
         headers: {
           Authorization: `Bearer ${token}`,
         },
+      },
       },
     );
     
@@ -374,6 +389,10 @@ export const getUserStats = async (timeRange = 'medium_term') => {
   if (!token) return { error: 'No valid token' };
 
   try {
+    // This is where we would combine data from multiple API calls to estimate stats
+    // In a real implementation, you would need a backend service to track this data over time
+
+    // Get user's top tracks
     const topTracks = await getTopTracks(timeRange, 50);
     if (topTracks.error) return { error: 'Failed to get top tracks' };
 
@@ -386,12 +405,17 @@ export const getUserStats = async (timeRange = 'medium_term') => {
     // Calculate estimated statistics
     // Note: These are very rough estimates and would not match real Spotify stats
 
+
     // Get unique tracks, artists, and albums from top tracks
     const uniqueTracks = new Set(topTracks.items.map(item => item.id));
     const uniqueArtists = new Set(
       topTracks.items.flatMap(item => item.artists.map(artist => artist.id)),
     );
+    const uniqueArtists = new Set(
+      topTracks.items.flatMap(item => item.artists.map(artist => artist.id)),
+    );
     const uniqueAlbums = new Set(topTracks.items.map(item => item.album.id));
+
 
     // Estimate streaming count based on popularity of top tracks
     // This is just a rough approximation
@@ -400,12 +424,19 @@ export const getUserStats = async (timeRange = 'medium_term') => {
       0,
     );
 
+    const estimatedStreams = topTracks.items.reduce(
+      (sum, track) => sum + track.popularity / 2,
+      0,
+    );
+
     // Estimate minutes streamed (average track is ~3.5 minutes)
     const estimatedMinutes = estimatedStreams * 3.5;
+
 
     // Convert to hours and days
     const estimatedHours = Math.floor(estimatedMinutes / 60);
     const estimatedDays = Math.floor(estimatedHours / 24);
+
 
     // Return estimated stats
     return {
@@ -425,10 +456,13 @@ export const getUserStats = async (timeRange = 'medium_term') => {
         hoursStreamed: -Math.floor(Math.random() * 50),
         differentAlbums: -Math.floor(Math.random() * 15),
         daysStreamed: -Math.floor(Math.random() * 50),
+        daysStreamed: -Math.floor(Math.random() * 50),
       },
       // For the daily stats visualization
       dailyStats: {
         streams: Math.floor(Math.random() * 100) + 20,
+        minutes: Math.floor(Math.random() * 300) + 100,
+      },
         minutes: Math.floor(Math.random() * 300) + 100,
       },
     };
@@ -447,15 +481,18 @@ export const getTopAlbums = async (timeRange = 'medium_term', limit = 20) => {
     // Create a map to store unique albums
     const albumsMap = new Map();
 
+
     // Process each track to extract album info
     topTracks.items.forEach(track => {
       const albumId = track.album.id;
+
 
       if (!albumsMap.has(albumId)) {
         // Create new album entry
         albumsMap.set(albumId, {
           ...track.album,
           tracks: [track],
+          popularity: track.popularity,
           popularity: track.popularity,
         });
       } else {
@@ -467,10 +504,12 @@ export const getTopAlbums = async (timeRange = 'medium_term', limit = 20) => {
       }
     });
 
+
     // Convert map to array and sort by popularity
     const albums = Array.from(albumsMap.values())
       .sort((a, b) => b.popularity - a.popularity)
       .slice(0, limit);
+
 
     return albums;
   } catch (error) {
