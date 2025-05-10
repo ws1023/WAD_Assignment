@@ -129,45 +129,6 @@ const ProfileScreen = () => {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Account</Text>
-        
-        <TouchableOpacity style={styles.menuItem}>
-          <MaterialCommunityIcons name="account-outline" size={24} color="white" />
-          <Text style={styles.menuItemText}>Profile Settings</Text>
-          <MaterialCommunityIcons name="chevron-right" size={24} color="#666" />
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.menuItem}>
-          <MaterialCommunityIcons name="bell-outline" size={24} color="white" />
-          <Text style={styles.menuItemText}>Notifications</Text>
-          <MaterialCommunityIcons name="chevron-right" size={24} color="#666" />
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.menuItem}>
-          <MaterialCommunityIcons name="shield-outline" size={24} color="white" />
-          <Text style={styles.menuItemText}>Privacy</Text>
-          <MaterialCommunityIcons name="chevron-right" size={24} color="#666" />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>App Settings</Text>
-        
-        <TouchableOpacity style={styles.menuItem}>
-          <MaterialCommunityIcons name="theme-light-dark" size={24} color="white" />
-          <Text style={styles.menuItemText}>Appearance</Text>
-          <MaterialCommunityIcons name="chevron-right" size={24} color="#666" />
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.menuItem}>
-          <MaterialCommunityIcons name="music-note" size={24} color="white" />
-          <Text style={styles.menuItemText}>Playback</Text>
-          <MaterialCommunityIcons name="chevron-right" size={24} color="#666" />
-        </TouchableOpacity>
-        
-      </View>
-
-      <View style={styles.section}>
         <Text style={styles.sectionTitle}>Your Library</Text>
         
         <TouchableOpacity 
@@ -183,24 +144,6 @@ const ProfileScreen = () => {
           </View>
           <MaterialCommunityIcons name="chevron-right" size={24} color="#666" />
         </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.menuItem}>
-          <MaterialCommunityIcons name="spotify" size={24} color="white" />
-          <Text style={styles.menuItemText}>Spotify Playlists</Text>
-          <MaterialCommunityIcons name="chevron-right" size={24} color="#666" />
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.menuItem}>
-          <MaterialCommunityIcons name="album" size={24} color="white" />
-          <Text style={styles.menuItemText}>Albums</Text>
-          <MaterialCommunityIcons name="chevron-right" size={24} color="#666" />
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.menuItem}>
-          <MaterialCommunityIcons name="account-music" size={24} color="white" />
-          <Text style={styles.menuItemText}>Artists</Text>
-          <MaterialCommunityIcons name="chevron-right" size={24} color="#666" />
-        </TouchableOpacity>
       </View>
 
       <View style={styles.section}>
@@ -214,7 +157,7 @@ const ProfileScreen = () => {
       </View>
 
       <View style={styles.footer}>
-        <Text style={styles.footerText}>Spotify Clone App</Text>
+        <Text style={styles.footerText}>WAD_Assignment</Text>
         <Text style={styles.footerText}>Version 1.0.0</Text>
       </View>
     </ScrollView>

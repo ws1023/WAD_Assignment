@@ -122,34 +122,6 @@ const HomeScreen = () => {
     fetchHomeData(true);
   };
 
-  const renderProfileHeader = () => (
-    <View style={styles.profileHeader}>
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.tabsContainer}
-      >
-        {['All', 'Music', 'Podcasts'].map((tab) => (
-          <TouchableOpacity
-            key={tab}
-            style={[
-              styles.tab,
-              selectedTab === tab && styles.selectedTab
-            ]}
-            onPress={() => setSelectedTab(tab)}
-          >
-            <Text style={[
-              styles.tabText,
-              selectedTab === tab && styles.selectedTabText
-            ]}>
-              {tab}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-    </View>
-  );
-
   const renderContentRow = (title, data, type) => {
     if (!data || data.length === 0) return null;
 
@@ -219,58 +191,6 @@ const HomeScreen = () => {
     );
   };
 
-  const renderOfflineBackup = () => (
-    <TouchableOpacity style={styles.offlineBackupContainer}>
-      <View style={styles.offlineIconContainer}>
-        <MaterialCommunityIcons name="wifi-off" size={40} color="#1DB954" />
-      </View>
-      <View style={styles.offlineTextContainer}>
-        <Text style={styles.offlineTitle}>Offline Backup</Text>
-        <Text style={styles.offlineDescription}>
-          Tracks you can play offline. So when your connection drops out, the music won't.
-        </Text>
-      </View>
-      <TouchableOpacity style={styles.playButton}>
-        <MaterialCommunityIcons name="play" size={26} color={Colors.text} />
-      </TouchableOpacity>
-    </TouchableOpacity>
-  );
-
-  const renderDownloadsSection = () => (
-    <View style={styles.downloadsSection}>
-      <Text style={styles.sectionTitle}>Music downloads</Text>
-      <View style={styles.downloadRow}>
-        <TouchableOpacity style={styles.newPlaylistButton}>
-          <View style={styles.newPlaylistIcon}>
-            <MaterialCommunityIcons name="playlist-plus" size={32} color={Colors.textSecondary} />
-          </View>
-          <Text style={styles.newPlaylistText}>New Playlist</Text>
-        </TouchableOpacity>
-        
-        {playlists.slice(0, 1).map(playlist => (
-          <TouchableOpacity
-            key={playlist.id}
-            style={styles.mediaItem}
-            onPress={() => {
-              navigation.navigate('PlaylistDetails', {playlistId: playlist.id});
-            }}>
-            <Image
-              source={
-                playlist.images && playlist.images.length > 0
-                  ? { uri: playlist.images[0].url }
-                  : require('../assets/images/UCS_logo.png')
-              }
-              style={styles.downloadImage}
-            />
-            <Text style={styles.downloadTitle} numberOfLines={1}>
-              {playlist.name}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </View>
-  );
-
 
   if (loading) {
     return (
@@ -294,11 +214,8 @@ const HomeScreen = () => {
           />
         }
       >
-        {renderProfileHeader()}
         {renderContentRow('Recently played', recentTracks, 'track')}
         {renderContentRow('Your top albums', topAlbums, 'album')}
-        {renderOfflineBackup()}
-        {renderDownloadsSection()}
       </ScrollView>
     </SafeAreaView>
   );
@@ -320,35 +237,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 80,
-  },
-  profileHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 8,
-  },
-  
-  tabsContainer: {
-    flexDirection: 'row',
-    paddingVertical: 4,
-  },
-  tab: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginRight: 8,
-    backgroundColor: Colors.cardBackground,
-  },
-  selectedTab: {
-    backgroundColor: Colors.primary,
-  },
-  tabText: {
-    color: Colors.text,
-    fontWeight: '500',
-  },
-  selectedTabText: {
-    color: Colors.background,
   },
   contentSection: {
     marginTop: 24,
@@ -382,46 +270,6 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontSize: 12,
   },
-  offlineBackupContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 16,
-    marginTop: 24,
-    padding: 16,
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 8,
-  },
-  offlineIconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    backgroundColor: 'rgba(29, 185, 84, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  offlineTextContainer: {
-    flex: 1,
-    marginLeft: 16,
-  },
-  offlineTitle: {
-    color: Colors.text,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  offlineDescription: {
-    color: Colors.textSecondary,
-    fontSize: 12,
-    marginTop: 4,
-  },
-  playButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
-  },
   downloadsSection: {
     marginTop: 24,
     paddingHorizontal: 16,
@@ -448,29 +296,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 8,
   },
-  downloadItem: {
-    width: 150,
-  },
-  downloadImage: {
-    width: 150,
-    height: 150,
-    borderRadius: 8,
-  },
-  downloadTitle: {
-    color: Colors.text,
-    fontSize: 14,
-    marginTop: 8,
-  },
- 
-  playButtonSmall: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 16,
-  },
 });
 
 export default HomeScreen;
+

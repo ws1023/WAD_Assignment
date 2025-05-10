@@ -1,216 +1,138 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator, Image, FlatList, Dimensions } from 'react-native';
-import { getTopTracks, getTopArtists, getValidToken } from '../spotifyAPI';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, Image, FlatList, Dimensions, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../theme';
+import SQLite from 'react-native-sqlite-storage';
+
+// Enable Promises for SQLite
+SQLite.enablePromise(true);
 
 const { width } = Dimensions.get('window');
 
 const StatsScreen = () => {
-  // Stats-related state
-  const [currentView, setCurrentView] = useState('stats'); // 'stats' or 'top'
-  const [statsTimeRange, setStatsTimeRange] = useState('year'); // day, week, month, year, lifetime
-  
-  // Top items related state
-  const [activeTab, setActiveTab] = useState('tracks'); // tracks, artists, albums, genres
+  // Top artists related state
   const [topTimeRange, setTopTimeRange] = useState('medium_term'); // short_term (4 weeks), medium_term (6 months), long_term (lifetime)
   const [loading, setLoading] = useState(true);
-  const [topTracks, setTopTracks] = useState([]);
   const [topArtists, setTopArtists] = useState([]);
-  const [topAlbums, setTopAlbums] = useState([]);
-  const [topGenres, setTopGenres] = useState([]);
+  const [db, setDb] = useState(null);
   
-  // Stats data (using the same mock data as before)
-  const [stats, setStats] = useState({
-    streams: 7573,
-    differentTracks: 1659,
-    minutesStreamed: 26781,
-    differentArtists: 1171,
-    hoursStreamed: 446,
-    differentAlbums: 1056,
-    daysStreamed: 18,
-    changes: {
-      streams: -45,
-      differentTracks: 1,
-      minutesStreamed: -43,
-      differentArtists: -10,
-      hoursStreamed: -43,
-      differentAlbums: -10,
-      daysStreamed: -44
-    },
-  });
-
+  // Initialize database
   useEffect(() => {
-    if (currentView === 'stats') {
-      fetchStats(statsTimeRange);
-    } else {
-      fetchTopItems(topTimeRange);
-    }
-  }, [currentView, statsTimeRange, topTimeRange, activeTab]);
+    const initializeDatabase = async () => {
+      try {
+        const database = await SQLite.openDatabase({
+          name: 'playlists.db',
+        location: 'default'
+        });
+        
+        setDb(database);
+        console.log('Database initialized in StatsScreen');
+      } catch (error) {
+        console.error('Error initializing database:', error);
+        Alert.alert('Database Error', 'Could not connect to the local database.');
+      }
+    };
 
-  // Fetch stats data (same as before)
-  const fetchStats = async (period) => {
-    // Same implementation as before
+    initializeDatabase();
+    
+    // Cleanup
+    return () => {
+      if (db) {
+        db.close()
+          .then(() => console.log('Database closed'))
+          .catch(error => console.error('Error closing database:', error));
+      }
+    };
+  }, []);
+  
+  // Fetch top artists when database is ready or time range changes
+  useEffect(() => {
+    if (db) {
+      fetchTopArtists(topTimeRange);
+    }
+  }, [db, topTimeRange]);
+
+  // Fetch top artists from local database
+  const fetchTopArtists = async (timeRange) => {
+    if (!db) return;
+    
     setLoading(true);
     
     try {
-      // Check if we have a valid token
-      const token = await getValidToken();
-      if (!token) {
-        console.error('No valid token available');
-        setLoading(false);
-        return;
+      // Calculate date threshold based on time range
+      const now = Math.floor(Date.now() / 1000);
+      let timeThreshold;
+      
+      switch (timeRange) {
+        case 'short_term': // 4 weeks
+          timeThreshold = now - (60 * 60 * 24 * 28); // 28 days ago
+          break;
+        case 'medium_term': // 6 months
+          timeThreshold = now - (60 * 60 * 24 * 180); // 180 days ago
+          break;
+        case 'long_term': // all time / lifetime
+          timeThreshold = 0; // no threshold
+          break;
+        default:
+          timeThreshold = now - (60 * 60 * 24 * 180); // default to 6 months
       }
       
-      // Simulate different stats for different time periods
-      setTimeout(() => {
-        let newStats = { ...stats };
+      // Query to get artists ranked by how many of their songs are in playlists
+      const [results] = await db.executeSql(`
+        SELECT 
+          artist, 
+          COUNT(*) as song_count,
+          GROUP_CONCAT(DISTINCT albumArt) as images 
+        FROM 
+          songs s
+        JOIN 
+          playlist_songs ps ON s.id = ps.songId
+        WHERE 
+          ps.addedAt >= ?
+        GROUP BY 
+          artist
+        ORDER BY 
+          song_count DESC, artist ASC
+        LIMIT 50
+      `, [timeThreshold]);
+      
+      const artists = [];
+      for (let i = 0; i < results.rows.length; i++) {
+        const row = results.rows.item(i);
         
-        switch(period) {
-          case 'day':
-            newStats = {
-              ...newStats,
-              streams: 120,
-              differentTracks: 42,
-              minutesStreamed: 420,
-              differentArtists: 28,
-              hoursStreamed: 7,
-              differentAlbums: 35,
-              daysStreamed: 1,
-            };
-            break;
-          case 'week':
-            newStats = {
-              ...newStats,
-              streams: 845,
-              differentTracks: 210,
-              minutesStreamed: 3200,
-              differentArtists: 150,
-              hoursStreamed: 53,
-              differentAlbums: 180,
-              daysStreamed: 7,
-            };
-            break;
-          case 'month':
-            newStats = {
-              ...newStats,
-              streams: 3210,
-              differentTracks: 680,
-              minutesStreamed: 11400,
-              differentArtists: 415,
-              hoursStreamed: 190,
-              differentAlbums: 520,
-              daysStreamed: 15,
-            };
-            break;
-          // Year and lifetime would use the default values
+        // Process the concatenated images
+        let images = [];
+        if (row.images) {
+          // Split the images string and take unique values
+          const imageUrls = [...new Set(row.images.split(','))];
+          images = imageUrls.filter(url => url).map(url => ({ url }));
         }
         
-        setStats(newStats);
-        setLoading(false);
-      }, 1000);
-    } catch (error) {
-      console.error('Error fetching stats:', error);
+        // If no images available, add placeholder
+        if (images.length === 0) {
+          images.push({ url: 'https://community.spotify.com/t5/image/serverpage/image-id/55829iC2AD64ADB887E2A5' });
+        }
+        
+        artists.push({
+          id: `local-artist-${i}`,
+          name: row.artist,
+          genres: [], // We don't have genres in local DB
+          images,
+          song_count: row.song_count,
+        });
+      }
+      
+      setTopArtists(artists);
       setLoading(false);
+    } catch (error) {
+      console.error('Error fetching top artists from database:', error);
+      setTopArtists([]);
+      setLoading(false);
+      Alert.alert('Error', 'Failed to fetch top artists from your library');
     }
   };
   
-  // Fetch top items data
-  const fetchTopItems = async (timeRange) => {
-    setLoading(true);
-    
-    try {
-      const token = await getValidToken();
-      if (!token) {
-        console.error('No valid token available');
-        setLoading(false);
-        return;
-      }
-      
-      if (activeTab === 'tracks' || activeTab === 'all') {
-        const tracks = await getTopTracks(timeRange, 50);
-        if (tracks && tracks.items) {
-          // Add mock stream and duration data since Spotify API doesn't provide this
-          const tracksWithStats = tracks.items.map((track, index) => ({
-            ...track,
-          }));
-          setTopTracks(tracksWithStats);
-        }
-      }
-      
-      if (activeTab === 'artists' || activeTab === 'all') {
-        const artists = await getTopArtists(timeRange, 50);
-        if (artists && artists.items) {
-          setTopArtists(artists.items);
-        }
-      }
-      
-      if (activeTab === 'albums' || activeTab === 'all') {
-        // The Spotify API doesn't have a direct endpoint for top albums
-        // We'll extract album data from top tracks as a workaround
-        const tracks = await getTopTracks(timeRange, 50);
-        if (tracks && tracks.items) {
-          const albums = {};
-          tracks.items.forEach(track => {
-            const albumId = track.album.id;
-            if (!albums[albumId]) {
-              albums[albumId] = {
-                ...track.album,
-                tracks: [track],
-              };
-            } else {
-              albums[albumId].tracks.push(track);
-            }
-          });
-          const albumsList = Object.values(albums).map((album, index) => ({
-            ...album,
-            rank: index + 1
-          }));
-          setTopAlbums(albumsList);
-        }
-      }
-      
-      if (activeTab === 'genres' || activeTab === 'all') {
-        // Extract genres from top artists
-        const artists = await getTopArtists(timeRange, 50);
-        if (artists && artists.items) {
-          const genreCount = {};
-          artists.items.forEach(artist => {
-            artist.genres.forEach(genre => {
-              if (!genreCount[genre]) {
-                genreCount[genre] = {
-                  name: genre,
-                  count: 1,
-                  artists: [artist],
-                };
-              } else {
-                genreCount[genre].count += 1;
-                genreCount[genre].artists.push(artist);
-              }
-            });
-          });
-          
-          const genresList = Object.values(genreCount)
-            .sort((a, b) => b.count - a.count)
-            .map((genre, index) => ({
-              ...genre,
-              rank: index + 1
-            }))
-            .slice(0, 20); // Limit to top 20 genres
-          
-          setTopGenres(genresList);
-        }
-      }
-      
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching top items:', error);
-      setLoading(false);
-    }
-  };
-  
-  // Convert time ranges
+  // Convert time ranges for display
   const convertDisplayTimeRange = (range) => {
     switch(range) {
       case 'short_term':
@@ -223,41 +145,6 @@ const StatsScreen = () => {
         return '6 months';
     }
   };
-  
-  // Render a stat tile (from previous implementation)
-  const renderStatTile = (value, change, label) => (
-    <View style={styles.statTile}>
-      <Text style={styles.statValue}>{value.toLocaleString()}</Text>
-      <Text style={[
-        styles.statChange, 
-        { color: change >= 0 ? Colors.primary : Colors.error }
-      ]}>
-        {change >= 0 ? '+' : ''}{change}%
-      </Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
-  );
-  
-  // Render track item in top tracks list
-  const renderTrackItem = ({ item, index }) => (
-    <View style={styles.trackItem}>
-      <View style={styles.trackRank}>
-        <Text style={styles.rankText}>{item.rank}.</Text>
-      </View>
-      <Image 
-        source={{ uri: item.album.images[0]?.url }} 
-        style={styles.trackImage} 
-      />
-      <View style={styles.trackInfo}>
-        <Text style={styles.trackName} numberOfLines={1}>{item.name}</Text>
-        <Text style={styles.trackArtist} numberOfLines={1}>
-          {item.artists.map(artist => artist.name).join(', ')}
-        </Text>
-        <View style={styles.trackStats}>
-        </View>
-      </View>
-    </View>
-  );
   
   // Render artist item in top artists list
   const renderArtistItem = ({ item, index }) => (
@@ -272,48 +159,7 @@ const StatsScreen = () => {
       <View style={styles.trackInfo}>
         <Text style={styles.trackName} numberOfLines={1}>{item.name}</Text>
         <Text style={styles.trackArtist} numberOfLines={1}>
-          {item.genres.slice(0, 2).join(', ')}
-        </Text>
-        <View style={styles.trackStats}>
-        </View>
-      </View>
-    </View>
-  );
-  
-  // Render album item in top albums list
-  const renderAlbumItem = ({ item, index }) => (
-    <View style={styles.trackItem}>
-      <View style={styles.trackRank}>
-        <Text style={styles.rankText}>{item.rank}.</Text>
-      </View>
-      <Image 
-        source={{ uri: item.images[0]?.url }} 
-        style={styles.trackImage} 
-      />
-      <View style={styles.trackInfo}>
-        <Text style={styles.trackName} numberOfLines={1}>{item.name}</Text>
-        <Text style={styles.trackArtist} numberOfLines={1}>
-          {item.artists.map(artist => artist.name).join(', ')}
-        </Text>
-        <View style={styles.trackStats}>
-        </View>
-      </View>
-    </View>
-  );
-  
-  // Render genre item in top genres list
-  const renderGenreItem = ({ item, index }) => (
-    <View style={styles.trackItem}>
-      <View style={styles.trackRank}>
-        <Text style={styles.rankText}>{item.rank}.</Text>
-      </View>
-      <View style={[styles.genreImage, { backgroundColor: `hsl(${index * 20}, 70%, 50%)` }]}>
-        <Text style={styles.genreImageText}>{item.name.charAt(0).toUpperCase()}</Text>
-      </View>
-      <View style={styles.trackInfo}>
-        <Text style={styles.trackName} numberOfLines={1}>{item.name}</Text>
-        <Text style={styles.trackArtist} numberOfLines={1}>
-          {item.artists.slice(0, 2).map(artist => artist.name).join(', ')}
+          {`${item.song_count} songs in your playlists`}
         </Text>
         <View style={styles.trackStats}>
         </View>
@@ -325,174 +171,58 @@ const StatsScreen = () => {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         <View style={styles.header}>
-          {currentView === 'stats' ? (
-            <>
-              <Text style={styles.headerTitle}>Stats</Text>
-              <TouchableOpacity onPress={() => setCurrentView('top')}>
-                <MaterialCommunityIcons name="trending-up" size={24} color={Colors.text} />
-              </TouchableOpacity>
-            </>
-          ) : (
-            <>
-              <View style={styles.topHeader}>
-                <TouchableOpacity onPress={() => setCurrentView('stats')}>
-                  <MaterialCommunityIcons name="chart-bar" size={24} color={Colors.text} />
-                </TouchableOpacity>
-                <View style={styles.topTitleContainer}>
-                  <Text style={styles.topTitle}>Top</Text>
-                  <Text style={styles.topSubtitle}>
-                    past {convertDisplayTimeRange(topTimeRange)}
-                  </Text>
-                </View>
-              </View>
-            </>
-          )}
+          <View style={styles.topHeader}>
+            <View style={styles.topTitleContainer}>
+              <Text style={styles.topTitle}>Top Artists</Text>
+              <Text style={styles.topSubtitle}>
+                past {convertDisplayTimeRange(topTimeRange)}
+              </Text>
+            </View>
+          </View>
         </View>
         
-        {currentView === 'stats' ? (
-          <ScrollView 
-            style={styles.scrollContainer} 
-            contentContainerStyle={styles.scrollContentContainer}
+        <View style={styles.topItemsContainer}>
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={Colors.primary} />
+            </View>
+          ) : topArtists.length === 0 ? (
+            <View style={styles.emptyStateContainer}>
+              <Text style={styles.emptyStateText}>
+                No artists found. Add songs to your playlists to see your top artists here.
+              </Text>
+            </View>
+          ) : (
+            <FlatList
+              data={topArtists}
+              renderItem={renderArtistItem}
+              keyExtractor={(item) => item.id}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{...styles.listContent, paddingBottom: 100}}
+            />
+          )}
+        </View>
+
+        <View style={styles.timeRangeSelector}>
+          <TouchableOpacity
+            style={styles.timeRangeButton}
+            onPress={() => setTopTimeRange('short_term')}
           >
-            <View style={styles.statsGrid}>
-              {renderStatTile(stats.streams, stats.changes.streams, 'streams')}
-              {renderStatTile(stats.differentTracks, stats.changes.differentTracks, 'different tracks')}
-              {renderStatTile(stats.minutesStreamed, stats.changes.minutesStreamed, 'minutes streamed')}
-              {renderStatTile(stats.differentArtists, stats.changes.differentArtists, 'different artists')}
-              {renderStatTile(stats.hoursStreamed, stats.changes.hoursStreamed, 'hours streamed')}
-              {renderStatTile(stats.differentAlbums, stats.changes.differentAlbums, 'different albums')}
-              {renderStatTile(stats.daysStreamed, stats.changes.daysStreamed, 'days streamed')}
-            </View>
-            <View style={{ height: 70 }} />
-          </ScrollView>
-        ) : (
-          <View style={{flex: 1}}>
-            <View style={styles.tabsContainer}>
-              <TouchableOpacity 
-                style={[styles.tab, activeTab === 'tracks' && styles.activeTab]}
-                onPress={() => setActiveTab('tracks')}
-              >
-                <Text style={[styles.tabText, activeTab === 'tracks' && styles.activeTabText]}>Tracks</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.tab, activeTab === 'artists' && styles.activeTab]}
-                onPress={() => setActiveTab('artists')}
-              >
-                <Text style={[styles.tabText, activeTab === 'artists' && styles.activeTabText]}>Artists</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.tab, activeTab === 'albums' && styles.activeTab]}
-                onPress={() => setActiveTab('albums')}
-              >
-                <Text style={[styles.tabText, activeTab === 'albums' && styles.activeTabText]}>Albums</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.tab, activeTab === 'genres' && styles.activeTab]}
-                onPress={() => setActiveTab('genres')}
-              >
-                <Text style={[styles.tabText, activeTab === 'genres' && styles.activeTabText]}>Genres</Text>
-              </TouchableOpacity>
-            </View>
-            
-            <View style={styles.topItemsContainer}>
-              {activeTab === 'tracks' && (
-                <FlatList
-                  data={topTracks}
-                  renderItem={renderTrackItem}
-                  keyExtractor={(item) => item.id}
-                  showsVerticalScrollIndicator={false}
-                  contentContainerStyle={{...styles.listContent, paddingBottom: 100}}
-                />
-              )}
-              
-              {activeTab === 'artists' && (
-                <FlatList
-                  data={topArtists}
-                  renderItem={renderArtistItem}
-                  keyExtractor={(item) => item.id}
-                  showsVerticalScrollIndicator={false}
-                  contentContainerStyle={{...styles.listContent, paddingBottom: 100}}
-                />
-              )}
-              
-              {activeTab === 'albums' && (
-                <FlatList
-                  data={topAlbums}
-                  renderItem={renderAlbumItem}
-                  keyExtractor={(item) => item.id}
-                  showsVerticalScrollIndicator={false}
-                  contentContainerStyle={{...styles.listContent, paddingBottom: 100}}
-                />
-              )}
-              
-              {activeTab === 'genres' && (
-                <FlatList
-                  data={topGenres}
-                  renderItem={renderGenreItem}
-                  keyExtractor={(item) => item.name}
-                  showsVerticalScrollIndicator={false}
-                  contentContainerStyle={{...styles.listContent, paddingBottom: 100}}
-                />
-              )}
-            </View>
-          </View>
-        )}
-        
-        {currentView === 'stats' ? (
-          <View style={styles.timeRangeSelector}>
-            <TouchableOpacity
-              style={styles.timeRangeButton}
-              onPress={() => setStatsTimeRange('day')}
-            >
-              <Text style={[styles.timeRangeText, statsTimeRange === 'day' && styles.activeTimeRangeText]}>day</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.timeRangeButton}
-              onPress={() => setStatsTimeRange('week')}
-            >
-              <Text style={[styles.timeRangeText, statsTimeRange === 'week' && styles.activeTimeRangeText]}>week</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.timeRangeButton}
-              onPress={() => setStatsTimeRange('month')}
-            >
-              <Text style={[styles.timeRangeText, statsTimeRange === 'month' && styles.activeTimeRangeText]}>month</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.timeRangeButton}
-              onPress={() => setStatsTimeRange('year')}
-            >
-              <Text style={[styles.timeRangeText, statsTimeRange === 'year' && styles.activeTimeRangeText]}>year</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.timeRangeButton}
-              onPress={() => setStatsTimeRange('lifetime')}
-            >
-              <Text style={[styles.timeRangeText, statsTimeRange === 'lifetime' && styles.activeTimeRangeText]}>lifetime</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View style={styles.timeRangeSelector}>
-            <TouchableOpacity
-              style={styles.timeRangeButton}
-              onPress={() => setTopTimeRange('short_term')}
-            >
-              <Text style={[styles.timeRangeText, topTimeRange === 'short_term' && styles.activeTimeRangeText]}>4 weeks</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.timeRangeButton}
-              onPress={() => setTopTimeRange('medium_term')}
-            >
-              <Text style={[styles.timeRangeText, topTimeRange === 'medium_term' && styles.activeTimeRangeText]}>6 months</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.timeRangeButton}
-              onPress={() => setTopTimeRange('long_term')}
-            >
-              <Text style={[styles.timeRangeText, topTimeRange === 'long_term' && styles.activeTimeRangeText]}>lifetime</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+            <Text style={[styles.timeRangeText, topTimeRange === 'short_term' && styles.activeTimeRangeText]}>4 weeks</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.timeRangeButton}
+            onPress={() => setTopTimeRange('medium_term')}
+          >
+            <Text style={[styles.timeRangeText, topTimeRange === 'medium_term' && styles.activeTimeRangeText]}>6 months</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.timeRangeButton}
+            onPress={() => setTopTimeRange('long_term')}
+          >
+            <Text style={[styles.timeRangeText, topTimeRange === 'long_term' && styles.activeTimeRangeText]}>lifetime</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -515,11 +245,6 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 10,
   },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: Colors.text,
-  },
   topHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -528,72 +253,23 @@ const styles = StyleSheet.create({
   },
   topTitleContainer: {
     alignItems: 'center',
+    width: '100%',
   },
   topTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
     color: Colors.text,
   },
   topSubtitle: {
-    fontSize: 12,
-    color: Colors.text,
+    fontSize: 14,
+    color: Colors.textSecondary,
+    marginTop: 4,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 50,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    paddingHorizontal: 10,
-  },
-  statTile: {
-    width: '48%',
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 8,
-    padding: 15,
-    marginBottom: 10,
-  },
-  statValue: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: Colors.primary,
-  },
-  statChange: {
-    fontSize: 14,
-    marginVertical: 4,
-  },
-  statLabel: {
-    fontSize: 16,
-    color: Colors.text,
-  },
-  tabsContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 10,
-    marginBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 15,
-    alignItems: 'center',
-    position: 'relative',
-  },
-  activeTab: {
-    borderBottomWidth: 2,
-    borderBottomColor: Colors.primary,
-  },
-  tabText: {
-    color: Colors.text,
-    fontSize: 16,
-  },
-  activeTabText: {
-    color: Colors.text,
-    fontWeight: 'bold',
   },
   topItemsContainer: {
     flex: 1,
@@ -623,19 +299,6 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginRight: 12,
   },
-  genreImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 5,
-    marginRight: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  genreImageText: {
-    color: Colors.text,
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
   trackInfo: {
     flex: 1,
   },
@@ -654,22 +317,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  trackStreams: {
-    color: Colors.text,
-    fontSize: 12,
-  },
-  trackDot: {
-    color: Colors.text,
-    fontSize: 12,
-    marginHorizontal: 4,
-  },
-  trackMinutes: {
-    color: Colors.text,
-    fontSize: 12,
-  },
   timeRangeSelector: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
     alignItems: 'center',
     backgroundColor: Colors.cardBackground,
     paddingVertical: 15,
@@ -682,8 +332,6 @@ const styles = StyleSheet.create({
   timeRangeButton: {
     paddingHorizontal: 5,
   },
-  activeTimeRange: {
-  },
   timeRangeText: {
     color: Colors.text,
     fontSize: 14,
@@ -692,12 +340,18 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontWeight: 'bold',
   },
-  scrollContainer: {
+  emptyStateContainer: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 30,
   },
-  scrollContentContainer: {
-    paddingBottom: 70,
-  },
+  emptyStateText: {
+    color: Colors.textSecondary,
+    fontSize: 16,
+    textAlign: 'center',
+    lineHeight: 22,
+  }
 });
 
 export default StatsScreen;
