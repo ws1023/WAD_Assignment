@@ -124,15 +124,8 @@ const styles = StyleSheet.create({
   backButton: {
     padding: 8,
   },
-  headerRight: {
-    flexDirection: 'row',
-  },
-  iconButton: {
-    padding: 8,
-    marginLeft: 8,
-  },
   contentContainer: {
-    paddingBottom: 0, // Space for bottom nav
+    paddingBottom: 0, 
   },
   albumHeader: {
     alignItems: 'center',
@@ -157,39 +150,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 24,
   },
-  trackItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  trackInfo: {
-    flex: 1,
-    paddingRight: 8,
-  },
-  trackName: {
-    color: 'white',
-    fontSize: 16,
-    marginBottom: 4,
-  },
-  artistName: {
-    color: Colors.textSecondary,
-    fontSize: 14,
-  },
-  trackRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  trackDuration: {
-    color: Colors.textSecondary,
-    fontSize: 14,
-    marginRight: 8,
-  },
-  menuButton: {
-    padding: 8,
-  },
-  
 });
 
 export default AlbumDetailsScreen;
