@@ -238,7 +238,6 @@ export const search = async (query, types = ['track', 'artist', 'album'], limit 
   }
 };
 
-// 获取用户关注的艺术家
 export const getUserFollowing = async (type = 'artist', limit = 1) => {
   const token = await getValidToken();
   if (!token) return null;
@@ -409,7 +408,6 @@ export const getUserStats = async (timeRange = 'medium_term') => {
     }
     
     // Calculate estimated statistics
-    // Note: These are very rough estimates and would not match real Spotify stats
     
     // Get unique tracks, artists, and albums from top tracks
     const uniqueTracks = new Set(topTracks.items.map(item => item.id));
@@ -417,7 +415,6 @@ export const getUserStats = async (timeRange = 'medium_term') => {
     const uniqueAlbums = new Set(topTracks.items.map(item => item.album.id));
     
     // Estimate streaming count based on popularity of top tracks
-    // This is just a rough approximation
     const estimatedStreams = topTracks.items.reduce((sum, track) => sum + (track.popularity / 2), 0);
     
     // Estimate minutes streamed (average track is ~3.5 minutes)

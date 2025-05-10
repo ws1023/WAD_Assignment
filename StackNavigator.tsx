@@ -7,6 +7,7 @@ import StatsScreen from "./screens/StatsScreen";
 import ProfileScreen from "./screens/ProfileScreen";
 import LoginScreen from "./screens/LoginScreen";
 import PlaybackScreen from './screens/PlaybackScreen';
+import SongDetailScreen from './screens/SongDetailScreen'; 
 import AlbumDetailsScreen from './screens/AlbumDetailsScreen'; 
 import PlaylistDetailScreen from './screens/PlaylistDetailScreen'; 
 import ArtistDetailScreen from './screens/ArtistDetailScreen'; 
@@ -95,8 +96,18 @@ function BottomTabs() {
         <Tab.Screen
           name="Search"
           component={SearchScreen}
-          options={({ navigation }) => ({
+          options={({ navigation, route }) => ({
             ...screenOptions({ navigation }),
+            // Tab bar visibility is controlled by the searchFocused state
+            tabBarStyle:
+              route.params?.searchFocused === true
+                ? { display: 'none' }
+                : {
+                    backgroundColor: Colors.background,
+                    borderTopColor: Colors.background,
+                    height: 60,
+                    paddingBottom: 10,
+                  },
             tabBarIcon: ({ focused, color }) => (
               <MaterialCommunityIcons
                 name="magnify"
@@ -176,19 +187,21 @@ function Navigation() {
           component={PlaybackScreen}
           options={{ headerShown: false }}
         />
-        {/* Add the AlbumDetails screen */}
+        <Stack.Screen
+          name="SongDetail"
+          component={SongDetailScreen}
+          options={{ headerShown: false }}
+        />
         <Stack.Screen  
           name="AlbumDetails" 
           component={AlbumDetailsScreen}
           options={{ headerShown: false }} 
         />
-        {/* Add the PlaylistDetails screen */}
         <Stack.Screen  
-          name="PlaylistDetails" 
+          name="PlaylistDetail" 
           component={PlaylistDetailScreen}
           options={{ headerShown: false }} 
         />
-        {/* Add the ArtistDetails screen */}
         <Stack.Screen
           name="ArtistDetails"
           component={ArtistDetailScreen}
