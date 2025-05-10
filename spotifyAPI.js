@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { refresh } from 'react-native-app-auth';
+import {refresh} from 'react-native-app-auth';
 
 // Base URL for Spotify API
 const SPOTIFY_API_BASE = 'https://api.spotify.com/v1';
@@ -20,20 +20,20 @@ export const getValidToken = async () => {
     const token = await AsyncStorage.getItem('@spotify_token');
     const expirationDate = await AsyncStorage.getItem('@token_expiration');
     const refreshToken = await AsyncStorage.getItem('@refresh_token');
-    
+
     // Check if token exists and is still valid
     if (token && expirationDate) {
       const now = new Date().getTime();
-      
+
       // If token is expired, refresh it
       if (now >= parseInt(expirationDate) && refreshToken) {
         return await refreshAccessToken(refreshToken);
       }
-      
+
       // If token is still valid, return it
       return token;
     }
-    
+
     // No valid token found
     return null;
   } catch (error) {
@@ -43,22 +43,23 @@ export const getValidToken = async () => {
 };
 
 // Refresh the access token using the refresh token
-const refreshAccessToken = async (refreshToken) => {
+const refreshAccessToken = async refreshToken => {
   try {
     const result = await refresh(authConfig, {
       refreshToken: refreshToken,
     });
-    
+
     // Calculate new expiration time
-    const expirationDate = new Date().getTime() + result.accessTokenExpirationDate * 1000;
-    
+    const expirationDate =
+      new Date().getTime() + result.accessTokenExpirationDate * 1000;
+
     // Save new tokens
     await AsyncStorage.setItem('@spotify_token', result.accessToken);
     if (result.refreshToken) {
       await AsyncStorage.setItem('@refresh_token', result.refreshToken);
     }
     await AsyncStorage.setItem('@token_expiration', expirationDate.toString());
-    
+
     return result.accessToken;
   } catch (error) {
     console.error('Error refreshing token:', error);
@@ -84,7 +85,7 @@ export const clearAuthData = async () => {
 export const getUserProfile = async () => {
   const token = await getValidToken();
   if (!token) return null;
-  
+
   try {
     const response = await fetch(`${SPOTIFY_API_BASE}/me`, {
       method: 'GET',
@@ -92,7 +93,7 @@ export const getUserProfile = async () => {
         Authorization: `Bearer ${token}`,
       },
     });
-    
+
     if (response.status === 200) {
       return await response.json();
     } else {
@@ -109,7 +110,7 @@ export const getUserProfile = async () => {
 export const getTopTracks = async (timeRange = 'medium_term', limit = 20) => {
   const token = await getValidToken();
   if (!token) return null;
-  
+
   try {
     const response = await fetch(
       `${SPOTIFY_API_BASE}/me/top/tracks?time_range=${timeRange}&limit=${limit}`,
@@ -118,9 +119,9 @@ export const getTopTracks = async (timeRange = 'medium_term', limit = 20) => {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      }
+      },
     );
-    
+
     if (response.status === 200) {
       return await response.json();
     } else {
@@ -137,7 +138,7 @@ export const getTopTracks = async (timeRange = 'medium_term', limit = 20) => {
 export const getTopArtists = async (timeRange = 'medium_term', limit = 20) => {
   const token = await getValidToken();
   if (!token) return null;
-  
+
   try {
     const response = await fetch(
       `${SPOTIFY_API_BASE}/me/top/artists?time_range=${timeRange}&limit=${limit}`,
@@ -146,9 +147,9 @@ export const getTopArtists = async (timeRange = 'medium_term', limit = 20) => {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      }
+      },
     );
-    
+
     if (response.status === 200) {
       return await response.json();
     } else {
@@ -165,7 +166,7 @@ export const getTopArtists = async (timeRange = 'medium_term', limit = 20) => {
 export const getUserPlaylists = async (limit = 20, offset = 0) => {
   const token = await getValidToken();
   if (!token) return null;
-  
+
   try {
     const response = await fetch(
       `${SPOTIFY_API_BASE}/me/playlists?limit=${limit}&offset=${offset}`,
@@ -174,9 +175,9 @@ export const getUserPlaylists = async (limit = 20, offset = 0) => {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      }
+      },
     );
-    
+
     if (response.status === 200) {
       return await response.json();
     } else {
@@ -190,22 +191,28 @@ export const getUserPlaylists = async (limit = 20, offset = 0) => {
 };
 
 // Search for tracks, artists, albums, etc.
-export const search = async (query, types = ['track', 'artist', 'album'], limit = 20) => {
+export const search = async (
+  query,
+  types = ['track', 'artist', 'album'],
+  limit = 20,
+) => {
   const token = await getValidToken();
   if (!token) return null;
-  
+
   try {
     const typeString = types.join(',');
     const response = await fetch(
-      `${SPOTIFY_API_BASE}/search?q=${encodeURIComponent(query)}&type=${typeString}&limit=${limit}`,
+      `${SPOTIFY_API_BASE}/search?q=${encodeURIComponent(
+        query,
+      )}&type=${typeString}&limit=${limit}`,
       {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      }
+      },
     );
-    
+
     if (response.status === 200) {
       return await response.json();
     } else {
@@ -222,7 +229,7 @@ export const search = async (query, types = ['track', 'artist', 'album'], limit 
 export const getUserFollowing = async (type = 'artist', limit = 1) => {
   const token = await getValidToken();
   if (!token) return null;
-  
+
   try {
     const response = await fetch(
       `${SPOTIFY_API_BASE}/me/following?type=${type}&limit=${limit}`,
@@ -231,9 +238,9 @@ export const getUserFollowing = async (type = 'artist', limit = 1) => {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      }
+      },
     );
-    
+
     if (response.status === 200) {
       return await response.json();
     } else {
@@ -249,7 +256,7 @@ export const getUserFollowing = async (type = 'artist', limit = 1) => {
 export const getRecentlyPlayed = async (limit = 50) => {
   const token = await getValidToken();
   if (!token) return null;
-  
+
   try {
     const response = await fetch(
       `${SPOTIFY_API_BASE}/me/player/recently-played?limit=${limit}`,
@@ -258,13 +265,11 @@ export const getRecentlyPlayed = async (limit = 50) => {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      }
+      },
     );
+
     if (response.status === 200) {
       return await response.json();
-    } else if (response.status === 403) {
-      console.error('Failed to get recently played tracks: 403 Forbidden');
-      return 403; // Return the status code so we can handle it specially
     } else {
       console.error('Failed to get recently played tracks:', response.status);
       return null;
@@ -275,126 +280,52 @@ export const getRecentlyPlayed = async (limit = 50) => {
   }
 };
 
-export const getRecentlyPlayedItems = async (limit = 50) => {
-  const token = await getValidToken();
-  if (!token) return null;
-  
-  try {
-    const response = await fetch(
-      `${SPOTIFY_API_BASE}/me/player/recently-played?limit=${limit}`,
-      {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-    
-    if (response.status === 200) {
-      const data = await response.json();
-      
-      // Extract context info from each item
-      const recentContexts = new Map();
-      
-      // Process each recently played track
-      data.items.forEach(item => {
-        // Track info
-        const trackId = item.track.id;
-        const playedAt = new Date(item.played_at).getTime();
-        
-        // Context type (playlist, album, artist)
-        if (item.context) {
-          const contextUri = item.context.uri;
-          const contextType = contextUri.split(':')[1]; // spotify:TYPE:ID
-          const contextId = contextUri.split(':')[2];
-          
-          // Only store the most recent play for each context
-          if (!recentContexts.has(contextUri) || playedAt > recentContexts.get(contextUri).playedAt) {
-            recentContexts.set(contextUri, {
-              type: contextType,
-              id: contextId,
-              playedAt,
-              track: item.track
-            });
-          }
-        }
-        
-        // Also track individual items (albums and artists) from tracks without context
-        if (!item.context) {
-          // Add album
-          const albumUri = `spotify:album:${item.track.album.id}`;
-          if (!recentContexts.has(albumUri) || playedAt > recentContexts.get(albumUri).playedAt) {
-            recentContexts.set(albumUri, {
-              type: 'album',
-              id: item.track.album.id,
-              playedAt,
-              track: item.track
-            });
-          }
-          
-          // Add primary artist
-          if (item.track.artists.length > 0) {
-            const artistUri = `spotify:artist:${item.track.artists[0].id}`;
-            if (!recentContexts.has(artistUri) || playedAt > recentContexts.get(artistUri).playedAt) {
-              recentContexts.set(artistUri, {
-                type: 'artist',
-                id: item.track.artists[0].id,
-                playedAt,
-                track: item.track
-              });
-            }
-          }
-        }
-      });
-      
-      return {
-        items: data.items,
-        contexts: Array.from(recentContexts.values())
-      };
-    } else {
-      console.error('Failed to get recently played tracks:', response.status);
-      return null;
-    }
-  } catch (error) {
-    console.error('Error fetching recently played tracks:', error);
-    return null;
-  }
-};
-
+// Get user's listening statistics (estimated from available data)
 export const getUserStats = async (timeRange = 'medium_term') => {
   const token = await getValidToken();
   if (!token) return null;
-  
+
   try {
+    // This is where we would combine data from multiple API calls to estimate stats
+    // In a real implementation, you would need a backend service to track this data over time
+
+    // Get user's top tracks
     const topTracks = await getTopTracks(timeRange, 50);
-    
+
+    // Get user's top artists
     const topArtists = await getTopArtists(timeRange, 50);
-    
+
+    // Get recently played tracks to estimate streaming habits
     const recentlyPlayed = await getRecentlyPlayed(50);
-    
+
     if (!topTracks || !topArtists || !recentlyPlayed) {
       return null;
     }
-    
+
     // Calculate estimated statistics
     // Note: These are very rough estimates and would not match real Spotify stats
-    
+
     // Get unique tracks, artists, and albums from top tracks
     const uniqueTracks = new Set(topTracks.items.map(item => item.id));
-    const uniqueArtists = new Set(topTracks.items.flatMap(item => item.artists.map(artist => artist.id)));
+    const uniqueArtists = new Set(
+      topTracks.items.flatMap(item => item.artists.map(artist => artist.id)),
+    );
     const uniqueAlbums = new Set(topTracks.items.map(item => item.album.id));
-    
+
     // Estimate streaming count based on popularity of top tracks
     // This is just a rough approximation
-    const estimatedStreams = topTracks.items.reduce((sum, track) => sum + (track.popularity / 2), 0);
-    
+    const estimatedStreams = topTracks.items.reduce(
+      (sum, track) => sum + track.popularity / 2,
+      0,
+    );
+
     // Estimate minutes streamed (average track is ~3.5 minutes)
     const estimatedMinutes = estimatedStreams * 3.5;
-    
+
     // Convert to hours and days
     const estimatedHours = Math.floor(estimatedMinutes / 60);
     const estimatedDays = Math.floor(estimatedHours / 24);
-    
+
     // Return estimated stats
     return {
       streams: Math.round(estimatedStreams),
@@ -412,13 +343,13 @@ export const getUserStats = async (timeRange = 'medium_term') => {
         differentArtists: -Math.floor(Math.random() * 15),
         hoursStreamed: -Math.floor(Math.random() * 50),
         differentAlbums: -Math.floor(Math.random() * 15),
-        daysStreamed: -Math.floor(Math.random() * 50)
+        daysStreamed: -Math.floor(Math.random() * 50),
       },
       // For the daily stats visualization
       dailyStats: {
         streams: Math.floor(Math.random() * 100) + 20,
-        minutes: Math.floor(Math.random() * 300) + 100
-      }
+        minutes: Math.floor(Math.random() * 300) + 100,
+      },
     };
   } catch (error) {
     console.error('Error calculating user stats:', error);
@@ -426,24 +357,42 @@ export const getUserStats = async (timeRange = 'medium_term') => {
   }
 };
 
+// get album details for displaying songs in album screen
+export const getAlbumDetails = async albumId => {
+  try {
+    const token = await getValidToken();
+    const response = await fetch(`${SPOTIFY_API_BASE}/albums/${albumId}`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching album details:', error);
+    throw error;
+  }
+};
+
 export const getTopAlbums = async (timeRange = 'medium_term', limit = 20) => {
   try {
     const topTracks = await getTopTracks(timeRange, 50);
     if (!topTracks || !topTracks.items) return [];
-    
+
     // Create a map to store unique albums
     const albumsMap = new Map();
-    
+
     // Process each track to extract album info
     topTracks.items.forEach(track => {
       const albumId = track.album.id;
-      
+
       if (!albumsMap.has(albumId)) {
         // Create new album entry
         albumsMap.set(albumId, {
           ...track.album,
           tracks: [track],
-          popularity: track.popularity
+          popularity: track.popularity,
         });
       } else {
         // Update existing album entry
@@ -453,129 +402,15 @@ export const getTopAlbums = async (timeRange = 'medium_term', limit = 20) => {
         albumsMap.set(albumId, album);
       }
     });
-    
+
     // Convert map to array and sort by popularity
     const albums = Array.from(albumsMap.values())
       .sort((a, b) => b.popularity - a.popularity)
       .slice(0, limit);
-    
+
     return albums;
   } catch (error) {
     console.error('Error extracting top albums:', error);
     return [];
-  }
-};
-
-// Get the current playback state
-export const getPlaybackState = async () => {
-  const token = await getValidToken();
-  if (!token) return null;
-  
-  try {
-    const response = await fetch(
-      `${SPOTIFY_API_BASE}/me/player`,
-      {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-    
-    if (response.status === 200) {
-      return await response.json();
-    } else if (response.status === 204) {
-      // No active device
-      return { is_playing: false };
-    } else {
-      console.error('Failed to get playback state:', response.status);
-      return null;
-    }
-  } catch (error) {
-    console.error('Error fetching playback state:', error);
-    return null;
-  }
-};
-
-// Get artist details including followers count
-export const getArtistDetails = async (artistId) => {
-  const token = await getValidToken();
-  if (!token) return null;
-  
-  try {
-    const response = await fetch(
-      `${SPOTIFY_API_BASE}/artists/${artistId}`,
-      {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-    
-    if (response.status === 200) {
-      return await response.json();
-    } else {
-      console.error('Failed to get artist details:', response.status);
-      return null;
-    }
-  } catch (error) {
-    console.error('Error fetching artist details:', error);
-    return null;
-  }
-};
-
-export const getUserSavedAlbums = async (limit = 50) => {
-  const token = await getValidToken();
-  if (!token) return null;
-  
-  try {
-    const response = await fetch(
-      `${SPOTIFY_API_BASE}/me/albums?limit=${limit}`,
-      {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-    
-    if (response.status === 200) {
-      return await response.json();
-    } else {
-      console.error('Failed to get saved albums:', response.status);
-      return null;
-    }
-  } catch (error) {
-    console.error('Error fetching saved albums:', error);
-    return null;
-  }
-};
-
-export const getFollowedArtists = async (limit = 50) => {
-  const token = await getValidToken();
-  if (!token) return null;
-  
-  try {
-    const response = await fetch(
-      `${SPOTIFY_API_BASE}/me/following?type=artist&limit=${limit}`,
-      {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-    
-    if (response.status === 200) {
-      const data = await response.json();
-      return data.artists; // Return the artists object directly
-    } else {
-      console.error('Failed to get followed artists:', response.status);
-      return null;
-    }
-  } catch (error) {
-    console.error('Error fetching followed artists:', error);
-    return null;
   }
 };

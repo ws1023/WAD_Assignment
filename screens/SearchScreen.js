@@ -1,25 +1,369 @@
-// screens/SearchScreen.js
-import { StyleSheet, Text, View } from "react-native";
-import React from "react";
+import React, {useState, useEffect} from 'react';
+import {
+  StyleSheet,
+  Text,
+  View,
+  TextInput,
+  TouchableOpacity,
+  FlatList,
+  Image,
+  ActivityIndicator,
+  SafeAreaView,
+  StatusBar,
+  Keyboard,
+  Dimensions,
+} from 'react-native';
+import {search} from '../spotifyAPI';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
-const SearchScreen = () => {
+const {width} = Dimensions.get('window');
+
+const SearchScreen = ({navigation}) => {
+  const [query, setQuery] = useState('');
+  const [searchResults, setSearchResults] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+
+  useEffect(() => {
+    // Update the route params when focus state changes
+    navigation.setParams({searchFocused: isFocused});
+  }, [isFocused, navigation]);
+
+  const handleSearch = async () => {
+    if (!query.trim()) {
+      setSearchResults(null);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const results = await search(
+        query,
+        ['track', 'artist', 'album', 'playlist', 'show', 'episode'],
+        10,
+      );
+      setSearchResults(results);
+    } catch (error) {
+      console.error('Search error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setQuery('');
+    setSearchResults(null);
+    setIsFocused(false);
+    Keyboard.dismiss();
+  };
+
+  const renderEmptySearch = () => (
+    <View style={styles.emptySearchContainer}>
+      <Text style={styles.emptySearchTitle}>Play what you love</Text>
+      <Text style={styles.emptySearchSubtitle}>
+        Search for artists, songs, podcasts and more.
+      </Text>
+    </View>
+  );
+
+const renderTrackItem = ({item}) => (
+  <TouchableOpacity 
+    style={styles.trackItem}
+    onPress={() => navigation.navigate('SongDetail', { track: item })}
+  >
+    <Image
+      source={{
+        uri: item.album.images[0]?.url || 'https://via.placeholder.com/60',
+      }}
+      style={styles.trackImage}
+    />
+    <View style={styles.trackInfo}>
+      <Text style={styles.trackName} numberOfLines={1}>
+        {item.name}
+      </Text>
+      <Text style={styles.trackArtist} numberOfLines={1}>
+        {item.artists.map(artist => artist.name).join(', ')}
+      </Text>
+    </View>
+  </TouchableOpacity>
+);
+
+  const renderArtistItem = ({item}) => (
+    <TouchableOpacity style={styles.artistItem}>
+      <Image
+        source={{uri: item.images[0]?.url || 'https://via.placeholder.com/80'}}
+        style={styles.artistImage}
+      />
+      <Text style={styles.artistName} numberOfLines={2}>
+        {item.name}
+      </Text>
+    </TouchableOpacity>
+  );
+
+  const renderAlbumItem = ({item}) => (
+    <TouchableOpacity style={styles.albumItem}>
+      <Image
+        source={{uri: item.images[0]?.url || 'https://via.placeholder.com/150'}}
+        style={styles.albumImage}
+      />
+      <Text style={styles.albumName} numberOfLines={1}>
+        {item.name}
+      </Text>
+      <Text style={styles.albumArtist} numberOfLines={1}>
+        {item.artists.map(artist => artist.name).join(', ')}
+      </Text>
+    </TouchableOpacity>
+  );
+
+  const renderResults = () => {
+    if (!searchResults) return null;
+
     return (
-        <View style={styles.container}>
-            <Text style={styles.text}>SearchScreen</Text>
-        </View>
-    );
-}
+      <FlatList
+        data={[]}
+        ListHeaderComponent={() => (
+          <>
+            {searchResults.tracks?.items?.length > 0 && (
+              <View>
+                <Text style={styles.sectionTitle}>Songs</Text>
+                <FlatList
+                  data={searchResults.tracks.items}
+                  renderItem={renderTrackItem}
+                  keyExtractor={item => `track-${item.id}`}
+                  horizontal={false}
+                />
+              </View>
+            )}
 
-export default SearchScreen;
+            {searchResults.artists?.items?.length > 0 && (
+              <View>
+                <Text style={styles.sectionTitle}>Artists</Text>
+                <FlatList
+                  data={searchResults.artists.items}
+                  renderItem={renderArtistItem}
+                  keyExtractor={item => `artist-${item.id}`}
+                  horizontal={true}
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.horizontalListContainer}
+                />
+              </View>
+            )}
+
+            {searchResults.albums?.items?.length > 0 && (
+              <View>
+                <Text style={styles.sectionTitle}>Albums</Text>
+                <FlatList
+                  data={searchResults.albums.items}
+                  renderItem={renderAlbumItem}
+                  keyExtractor={item => `album-${item.id}`}
+                  horizontal={true}
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.horizontalListContainer}
+                />
+              </View>
+            )}
+          </>
+        )}
+        renderItem={({item}) => null}
+        keyExtractor={(item, index) => `section-${index}`}
+      />
+    );
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" />
+
+      {/* Search Bar */}
+      <View style={styles.searchBarContainer}>
+        <View style={styles.searchInputWrapper}>
+          <MaterialCommunityIcons
+            name="magnify"
+            size={20}
+            color="#9e9e9e"
+            style={styles.searchIcon}
+          />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="What do you want to listen to?"
+            placeholderTextColor="#9e9e9e"
+            value={query}
+            onChangeText={setQuery}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => {
+              // Only unfocus if the user hasn't searched anything
+              if (!query.trim()) {
+                setIsFocused(false);
+              }
+            }}
+            returnKeyType="search"
+            onSubmitEditing={handleSearch}
+            autoCapitalize="none"
+          />
+        </View>
+        {isFocused && (
+          <TouchableOpacity onPress={handleCancel} style={styles.cancelButton}>
+            <Text style={styles.cancelButtonText}>Cancel</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Content */}
+      <View style={styles.content}>
+        {loading ? (
+          <ActivityIndicator
+            size="large"
+            color="#1DB954"
+            style={styles.loader}
+          />
+        ) : !query ? (
+          renderEmptySearch()
+        ) : (
+          renderResults()
+        )}
+      </View>
+    </SafeAreaView>
+  );
+};
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#121212',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    text: {
-        color: '#fff',
-    }
-})
+  container: {
+    flex: 1,
+    backgroundColor: '#121212',
+  },
+  searchBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 8,
+    backgroundColor: '#121212',
+  },
+  searchInputWrapper: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#333',
+    borderRadius: 4,
+    paddingHorizontal: 8,
+    height: 40,
+  },
+  searchIcon: {
+    marginRight: 6,
+    color: '#9e9e9e',
+  },
+  searchInput: {
+    flex: 1,
+    height: 40,
+    fontSize: 16,
+    color: '#fff',
+  },
+  cancelButton: {
+    marginLeft: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 5,
+  },
+  cancelButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  emptySearchContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 30,
+  },
+  emptySearchTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptySearchSubtitle: {
+    fontSize: 18,
+    color: '#9e9e9e',
+    textAlign: 'center',
+  },
+  loader: {
+    marginTop: 20,
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  horizontalListContainer: {
+    paddingRight: 16,
+  },
+  // Track styles
+  trackItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  trackImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 4,
+  },
+  trackInfo: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  trackName: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  trackArtist: {
+    color: '#9e9e9e',
+    fontSize: 14,
+    marginTop: 4,
+  },
+  // Artist styles
+  artistItem: {
+    marginRight: 16,
+    width: 100,
+    alignItems: 'center',
+  },
+  artistImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    marginBottom: 8,
+  },
+  artistName: {
+    color: '#ffffff',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  // Album styles
+  albumItem: {
+    marginRight: 16,
+    width: 150,
+  },
+  albumImage: {
+    width: 150,
+    height: 150,
+    borderRadius: 4,
+    marginBottom: 8,
+  },
+  albumName: {
+    color: '#ffffff',
+    fontSize: 14,
+  },
+  albumArtist: {
+    color: '#9e9e9e',
+    fontSize: 12,
+    marginTop: 4,
+  },
+});
+
+export default SearchScreen;

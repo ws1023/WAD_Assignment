@@ -1,0 +1,246 @@
+import React, {useEffect, useState} from 'react';
+import {
+  StyleSheet,
+  Text,
+  View,
+  Image,
+  FlatList,
+  ActivityIndicator,
+  TouchableOpacity,
+  SafeAreaView,
+  StatusBar,
+  Dimensions,
+} from 'react-native';
+import {useRoute, useNavigation} from '@react-navigation/native';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import {getAlbumDetails} from '../spotifyAPI';
+import {Colors} from '../theme';
+
+const {width} = Dimensions.get('window');
+const ALBUM_IMAGE_SIZE = width * 0.6;
+
+const AlbumDetailsScreen = () => {
+  const route = useRoute();
+  const navigation = useNavigation();
+  const {albumId} = route.params;
+  const [albumDetails, setAlbumDetails] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  useEffect(() => {
+    fetchAlbumDetails();
+  }, []);
+
+  const fetchAlbumDetails = async () => {
+    try {
+      const data = await getAlbumDetails(albumId);
+      setAlbumDetails(data);
+    } catch (error) {
+      console.error('Error fetching album details:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleFavorite = () => {
+    setIsFavorite(!isFavorite);
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="light-content" />
+
+      {/* Header with back button, favorite and menu */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}>
+          <MaterialCommunityIcons name="arrow-left" size={28} color="white" />
+        </TouchableOpacity>
+
+        <View style={styles.headerRight}>
+          <TouchableOpacity onPress={toggleFavorite} style={styles.iconButton}>
+            <MaterialCommunityIcons
+              name={isFavorite ? 'heart' : 'heart-outline'}
+              size={28}
+              color={isFavorite ? Colors.primary : 'white'}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.iconButton}>
+            <MaterialCommunityIcons
+              name="dots-vertical"
+              size={28}
+              color="white"
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {albumDetails && (
+        <FlatList
+          data={albumDetails.tracks.items}
+          keyExtractor={item => item.id}
+          contentContainerStyle={styles.contentContainer}
+          ListHeaderComponent={() => (
+            <View style={styles.albumHeader}>
+              <Image
+                source={{uri: albumDetails.images[0].url}}
+                style={styles.albumImage}
+              />
+
+              <Text style={styles.albumTitle}>{albumDetails.name}</Text>
+              <Text style={styles.albumCreator}>
+                by {albumDetails.artists.map(artist => artist.name).join(', ')}
+              </Text>
+
+              <TouchableOpacity style={styles.shuffleButton}>
+                <Text style={styles.shuffleButtonText}>Shuffle play</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          renderItem={({item}) => (
+            <View style={styles.trackItem}>
+              <View style={styles.trackInfo}>
+                <Text style={styles.trackName} numberOfLines={1}>
+                  {item.name}
+                </Text>
+                <Text style={styles.artistName} numberOfLines={1}>
+                  {item.artists.map(artist => artist.name).join(', ')}
+                </Text>
+              </View>
+              <View style={styles.trackRight}>
+                <Text style={styles.trackDuration}>
+                  {Math.floor(item.duration_ms / 60000)}:
+                  {((item.duration_ms % 60000) / 1000)
+                    .toFixed(0)
+                    .padStart(2, '0')}
+                </Text>
+                <TouchableOpacity style={styles.menuButton}>
+                  <MaterialCommunityIcons
+                    name="dots-vertical"
+                    size={20}
+                    color={Colors.textSecondary}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        />
+      )}
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#121212',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#121212',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(18, 18, 18, 0.8)',
+    zIndex: 10,
+  },
+  backButton: {
+    padding: 8,
+  },
+  headerRight: {
+    flexDirection: 'row',
+  },
+  iconButton: {
+    padding: 8,
+    marginLeft: 8,
+  },
+  contentContainer: {
+    paddingBottom: 0, // Space for bottom nav
+  },
+  albumHeader: {
+    alignItems: 'center',
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+  },
+  albumImage: {
+    width: ALBUM_IMAGE_SIZE,
+    height: ALBUM_IMAGE_SIZE,
+    borderRadius: 8,
+    marginBottom: 24,
+  },
+  albumTitle: {
+    color: 'white',
+    fontSize: 24,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  albumCreator: {
+    color: Colors.textSecondary,
+    fontSize: 16,
+    marginBottom: 24,
+  },
+  shuffleButton: {
+    backgroundColor: Colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 40,
+    borderRadius: 30,
+    marginBottom: 16,
+  },
+  shuffleButtonText: {
+    color: 'black',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  trackItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  trackInfo: {
+    flex: 1,
+    paddingRight: 8,
+  },
+  trackName: {
+    color: 'white',
+    fontSize: 16,
+    marginBottom: 4,
+  },
+  artistName: {
+    color: Colors.textSecondary,
+    fontSize: 14,
+  },
+  trackRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  trackDuration: {
+    color: Colors.textSecondary,
+    fontSize: 14,
+    marginRight: 8,
+  },
+  menuButton: {
+    padding: 8,
+  },
+  
+});
+
+export default AlbumDetailsScreen;

@@ -8,7 +8,8 @@ import {
   TouchableOpacity,
   FlatList,
   ActivityIndicator,
-  SafeAreaView
+  SafeAreaView,
+  RefreshControl
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -20,6 +21,7 @@ import {
   getUserProfile 
 } from '../spotifyAPI';
 import { Colors } from '../theme';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const HomeScreen = () => {
   const navigation = useNavigation();
@@ -29,6 +31,7 @@ const HomeScreen = () => {
   const [playlists, setPlaylists] = useState([]);
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     fetchHomeData();
@@ -46,14 +49,38 @@ const HomeScreen = () => {
     }
   };
 
-  const fetchHomeData = async () => {
+  const fetchHomeData = async (forceRefresh = false) => {
     try {
-      setLoading(true);
+      if (!forceRefresh) {
+        setLoading(true);
+      } else {
+        setIsRefreshing(true);
+      }
+      
+      // Try to load cached data first for instant display
+      if (!forceRefresh) {
+        try {
+          const cachedRecentTracks = await AsyncStorage.getItem('recentTracks');
+          const cachedTopAlbums = await AsyncStorage.getItem('topAlbums');
+          const cachedPlaylists = await AsyncStorage.getItem('playlists');
+          
+          if (cachedRecentTracks) {
+            setRecentTracks(JSON.parse(cachedRecentTracks));
+          }
+          if (cachedTopAlbums) {
+            setTopAlbums(JSON.parse(cachedTopAlbums));
+          }
+          if (cachedPlaylists) {
+            setPlaylists(JSON.parse(cachedPlaylists));
+          }
+        } catch (cacheError) {
+          console.log('Cache retrieval error:', cacheError);
+        }
+      }
 
       // Fetch recently played tracks
       const recentlyPlayedData = await getRecentlyPlayed(10);
       if (recentlyPlayedData && recentlyPlayedData.items) {
-        // Transform the data to get unique albums/tracks
         const uniqueItems = [];
         const trackIds = new Set();
         
@@ -65,24 +92,34 @@ const HomeScreen = () => {
         });
         
         setRecentTracks(uniqueItems);
+        // Cache the data
+        await AsyncStorage.setItem('recentTracks', JSON.stringify(uniqueItems));
+        // Set "last updated" timestamp
+        await AsyncStorage.setItem('recentTracksTimestamp', Date.now().toString());
       }
 
-      // Fetch top albums
+      // Similar caching for other data types
       const albumsData = await getTopAlbums('medium_term', 10);
       if (albumsData) {
         setTopAlbums(albumsData);
+        await AsyncStorage.setItem('topAlbums', JSON.stringify(albumsData));
       }
 
-      // Fetch user playlists
       const playlistsData = await getUserPlaylists(10);
       if (playlistsData && playlistsData.items) {
         setPlaylists(playlistsData.items);
+        await AsyncStorage.setItem('playlists', JSON.stringify(playlistsData.items));
       }
     } catch (error) {
       console.error('Error fetching home data:', error);
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
+  };
+
+  const onRefresh = () => {
+    fetchHomeData(true);
   };
 
   const renderProfileHeader = () => (
@@ -115,48 +152,61 @@ const HomeScreen = () => {
 
   const renderContentRow = (title, data, type) => {
     if (!data || data.length === 0) return null;
-    
+
     return (
       <View style={styles.contentSection}>
         <Text style={styles.sectionTitle}>{title}</Text>
-        <ScrollView 
-          horizontal 
+        <ScrollView
+          horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.contentScrollContainer}
-        >
-          {data.map((item, index) => {
+          contentContainerStyle={styles.contentScrollContainer}>
+          {data.map(item => {
             let imageUrl, itemTitle, artist;
-            
+
             if (type === 'track') {
+              // Handle track type for recently played items
               imageUrl = item.album?.images?.[0]?.url;
               itemTitle = item.name;
-              artist = item.artists.map(a => a.name).join(', ');
+              artist = item.artists?.map(a => a.name).join(', ');
             } else if (type === 'album') {
+              // Existing album handling
               imageUrl = item.images?.[0]?.url;
               itemTitle = item.name;
               artist = item.artists?.map(a => a.name).join(', ');
             } else if (type === 'playlist') {
+              // Add playlist handling if needed
               imageUrl = item.images?.[0]?.url;
               itemTitle = item.name;
               artist = `By ${item.owner?.display_name || 'Spotify'}`;
             }
-            
+
             return (
-              <TouchableOpacity key={item.id} style={styles.mediaItem}>
-                <Image 
-                  source={imageUrl ? { uri: imageUrl } : require('../assets/images/UCS_logo.png')}
+              <TouchableOpacity
+                key={item.id}
+                style={styles.mediaItem}
+                onPress={() => {
+                  if (type === 'album') {
+                    navigation.navigate('AlbumDetails', {albumId: item.id});
+                  } else if (type === 'track') {
+                    // You might want to navigate to track details or play the track
+                    // For now, we'll navigate to the album that contains this track
+                    navigation.navigate('AlbumDetails', {
+                      albumId: item.album.id,
+                    });
+                  }
+                }}>
+                <Image
+                  source={
+                    imageUrl
+                      ? {uri: imageUrl}
+                      : require('../assets/images/UCS_logo.png')
+                  }
                   style={styles.mediaImage}
                 />
-                <Text 
-                  style={styles.mediaTitle}
-                  numberOfLines={1}
-                >
+                <Text style={styles.mediaTitle} numberOfLines={1}>
                   {itemTitle}
                 </Text>
-                <Text 
-                  style={styles.mediaSubtitle}
-                  numberOfLines={1}
-                >
+                <Text style={styles.mediaSubtitle} numberOfLines={1}>
                   {artist}
                 </Text>
               </TouchableOpacity>
@@ -228,6 +278,14 @@ const HomeScreen = () => {
       <ScrollView 
         style={styles.scrollContainer}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl 
+            refreshing={isRefreshing} 
+            onRefresh={onRefresh}
+            colors={[Colors.primary]} 
+            tintColor={Colors.primary}
+          />
+        }
       >
         {renderProfileHeader()}
         {renderContentRow('Recently played', recentTracks, 'track')}
@@ -409,3 +467,4 @@ const styles = StyleSheet.create({
 });
 
 export default HomeScreen;
+
