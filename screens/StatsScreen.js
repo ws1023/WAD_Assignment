@@ -1,4 +1,3 @@
-// screens/StatsScreen.js
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator, Image, FlatList, Dimensions } from 'react-native';
 import { getTopTracks, getTopArtists, getValidToken } from '../spotifyAPI';
@@ -8,36 +7,6 @@ import { Colors } from '../theme';
 
 const { width } = Dimensions.get('window');
 
-// Circular chart component for listening clocks (from previous implementation)
-const CircularChart = ({ data, type }) => {
-    return (
-      <View style={styles.clockContainer}>
-        <View style={styles.clock}>
-          {Array(24).fill(0).map((_, i) => (
-            <View 
-              key={i} 
-              style={[
-                styles.clockSegment, 
-                {
-                  transform: [{ rotate: `${i * 15}deg` }],
-                  backgroundColor: Math.random() > 0.3 ? Colors.primary : Colors.border // 使用已定义的颜色
-                }
-              ]} 
-            />
-          ))}
-          <View style={styles.clockCenter}>
-            {/* 修改时钟中心文本定位 */}
-            <Text style={[styles.clockCenterText, { top: 5 }]}>0</Text>
-            <Text style={[styles.clockCenterText, { bottom: 5 }]}>6</Text>
-            <Text style={[styles.clockCenterText, { left: 5 }]}>9</Text>
-            <Text style={[styles.clockCenterText, { right: 5 }]}>3</Text>
-          </View>
-        </View>
-        <Text style={styles.clockLabel}>{type}</Text>
-      </View>
-    );
-  };
-
 const StatsScreen = () => {
   // Stats-related state
   const [currentView, setCurrentView] = useState('stats'); // 'stats' or 'top'
@@ -46,7 +15,6 @@ const StatsScreen = () => {
   // Top items related state
   const [activeTab, setActiveTab] = useState('tracks'); // tracks, artists, albums, genres
   const [topTimeRange, setTopTimeRange] = useState('medium_term'); // short_term (4 weeks), medium_term (6 months), long_term (lifetime)
-  const [isGridView, setIsGridView] = useState(false);
   const [loading, setLoading] = useState(true);
   const [topTracks, setTopTracks] = useState([]);
   const [topArtists, setTopArtists] = useState([]);
@@ -71,10 +39,6 @@ const StatsScreen = () => {
       differentAlbums: -10,
       daysStreamed: -44
     },
-    dailyStats: {
-      streams: 50,
-      minutes: 231
-    }
   });
 
   useEffect(() => {
@@ -170,9 +134,6 @@ const StatsScreen = () => {
           // Add mock stream and duration data since Spotify API doesn't provide this
           const tracksWithStats = tracks.items.map((track, index) => ({
             ...track,
-            rank: index + 1,
-            streams: Math.floor(Math.random() * 300) + 200 - (index * 10),
-            minutes: Math.floor(Math.random() * 1000) + 500 - (index * 20)
           }));
           setTopTracks(tracksWithStats);
         }
@@ -197,13 +158,9 @@ const StatsScreen = () => {
               albums[albumId] = {
                 ...track.album,
                 tracks: [track],
-                streams: Math.floor(Math.random() * 200) + 100,
-                minutes: Math.floor(Math.random() * 800) + 300
               };
             } else {
               albums[albumId].tracks.push(track);
-              albums[albumId].streams += Math.floor(Math.random() * 50);
-              albums[albumId].minutes += Math.floor(Math.random() * 100);
             }
           });
           const albumsList = Object.values(albums).map((album, index) => ({
@@ -226,14 +183,10 @@ const StatsScreen = () => {
                   name: genre,
                   count: 1,
                   artists: [artist],
-                  streams: Math.floor(Math.random() * 200) + 100,
-                  minutes: Math.floor(Math.random() * 800) + 300
                 };
               } else {
                 genreCount[genre].count += 1;
                 genreCount[genre].artists.push(artist);
-                genreCount[genre].streams += Math.floor(Math.random() * 50);
-                genreCount[genre].minutes += Math.floor(Math.random() * 100);
               }
             });
           });
@@ -301,9 +254,6 @@ const StatsScreen = () => {
           {item.artists.map(artist => artist.name).join(', ')}
         </Text>
         <View style={styles.trackStats}>
-          <Text style={styles.trackStreams}>{item.streams} streams</Text>
-          <Text style={styles.trackDot}>•</Text>
-          <Text style={styles.trackMinutes}>{item.minutes} minutes</Text>
         </View>
       </View>
     </View>
@@ -325,9 +275,6 @@ const StatsScreen = () => {
           {item.genres.slice(0, 2).join(', ')}
         </Text>
         <View style={styles.trackStats}>
-          <Text style={styles.trackStreams}>{Math.floor(Math.random() * 300) + 200} streams</Text>
-          <Text style={styles.trackDot}>•</Text>
-          <Text style={styles.trackMinutes}>{Math.floor(Math.random() * 1000) + 500} minutes</Text>
         </View>
       </View>
     </View>
@@ -349,9 +296,6 @@ const StatsScreen = () => {
           {item.artists.map(artist => artist.name).join(', ')}
         </Text>
         <View style={styles.trackStats}>
-          <Text style={styles.trackStreams}>{item.streams} streams</Text>
-          <Text style={styles.trackDot}>•</Text>
-          <Text style={styles.trackMinutes}>{item.minutes} minutes</Text>
         </View>
       </View>
     </View>
@@ -372,218 +316,11 @@ const StatsScreen = () => {
           {item.artists.slice(0, 2).map(artist => artist.name).join(', ')}
         </Text>
         <View style={styles.trackStats}>
-          <Text style={styles.trackStreams}>{item.streams} streams</Text>
-          <Text style={styles.trackDot}>•</Text>
-          <Text style={styles.trackMinutes}>{item.minutes} minutes</Text>
         </View>
       </View>
     </View>
   );
   
-  // Render the appropriate content based on current tab
-  const renderContent = () => {
-    if (loading) {
-      return (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-        </View>
-      );
-    }
-    
-    if (currentView === 'stats') {
-      return (
-        <>
-          <View style={styles.statsGrid}>
-            {renderStatTile(stats.streams, stats.changes.streams, 'streams')}
-            {renderStatTile(stats.differentTracks, stats.changes.differentTracks, 'different tracks')}
-            {renderStatTile(stats.minutesStreamed, stats.changes.minutesStreamed, 'minutes streamed')}
-            {renderStatTile(stats.differentArtists, stats.changes.differentArtists, 'different artists')}
-            {renderStatTile(stats.hoursStreamed, stats.changes.hoursStreamed, 'hours streamed')}
-            {renderStatTile(stats.differentAlbums, stats.changes.differentAlbums, 'different albums')}
-            {renderStatTile(stats.daysStreamed, stats.changes.daysStreamed, 'days streamed')}
-          </View>
-          
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Listening clocks</Text>
-              <View style={styles.betaBadge}>
-                <Text style={styles.betaText}>BETA</Text>
-              </View>
-            </View>
-            
-            <View style={styles.listeningClocks}>
-              <CircularChart data={stats} type="streams" />
-              <CircularChart data={stats} type="minutes streamed" />
-            </View>
-          </View>
-          
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Streams and minutes streamed per day</Text>
-              <View style={styles.betaBadge}>
-                <Text style={styles.betaText}>BETA</Text>
-              </View>
-            </View>
-            
-            <View style={styles.dailyStatsContainer}>
-              <View style={styles.yearNavigation}>
-                <MaterialCommunityIcons name="chevron-left" size={24} color={Colors.primary} />
-                <Text style={styles.yearText}>2025</Text>
-                <MaterialCommunityIcons name="chevron-right" size={24} color={Colors.primary} />
-              </View>
-              
-              <View style={styles.dailyStats}>
-                <View style={styles.dailyStatItem}>
-                  <Text style={styles.dailyStatValue}>{stats.dailyStats.streams}</Text>
-                </View>
-                <View style={styles.dailyStatItem}>
-                  <Text style={styles.dailyStatValue}>{stats.dailyStats.minutes}</Text>
-                </View>
-              </View>
-            </View>
-          </View>
-          
-          <View style={styles.timeRangeSelector}>
-            <TouchableOpacity
-              style={[styles.timeRangeButton, statsTimeRange === 'day' && styles.activeTimeRange]}
-              onPress={() => setStatsTimeRange('day')}
-            >
-              <Text style={[styles.timeRangeText, statsTimeRange === 'day' && styles.activeTimeRangeText]}>day</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.timeRangeButton, statsTimeRange === 'week' && styles.activeTimeRange]}
-              onPress={() => setStatsTimeRange('week')}
-            >
-              <Text style={[styles.timeRangeText, statsTimeRange === 'week' && styles.activeTimeRangeText]}>week</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.timeRangeButton, statsTimeRange === 'month' && styles.activeTimeRange]}
-              onPress={() => setStatsTimeRange('month')}
-            >
-              <Text style={[styles.timeRangeText, statsTimeRange === 'month' && styles.activeTimeRangeText]}>month</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.timeRangeButton, statsTimeRange === 'year' && styles.activeTimeRange]}
-              onPress={() => setStatsTimeRange('year')}
-            >
-              <Text style={[styles.timeRangeText, statsTimeRange === 'year' && styles.activeTimeRangeText]}>year</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.timeRangeButton, statsTimeRange === 'lifetime' && styles.activeTimeRange]}
-              onPress={() => setStatsTimeRange('lifetime')}
-            >
-              <Text style={[styles.timeRangeText, statsTimeRange === 'lifetime' && styles.activeTimeRangeText]}>lifetime</Text>
-            </TouchableOpacity>
-            <MaterialCommunityIcons name="chevron-up" size={24} color={Colors.secondary} />
-          </View>
-        </>
-      );
-    } else {
-      // Top content view
-      return (
-        <>
-          {/* Tabs for tracks, artists, albums, genres */}
-          <View style={styles.tabsContainer}>
-            <TouchableOpacity 
-              style={[styles.tab, activeTab === 'tracks' && styles.activeTab]}
-              onPress={() => setActiveTab('tracks')}
-            >
-              <Text style={[styles.tabText, activeTab === 'tracks' && styles.activeTabText]}>Tracks</Text>
-              {activeTab === 'tracks' && <View style={styles.activeTabIndicator} />}
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.tab, activeTab === 'artists' && styles.activeTab]}
-              onPress={() => setActiveTab('artists')}
-            >
-              <Text style={[styles.tabText, activeTab === 'artists' && styles.activeTabText]}>Artists</Text>
-              {activeTab === 'artists' && <View style={styles.activeTabIndicator} />}
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.tab, activeTab === 'albums' && styles.activeTab]}
-              onPress={() => setActiveTab('albums')}
-            >
-              <Text style={[styles.tabText, activeTab === 'albums' && styles.activeTabText]}>Albums</Text>
-              {activeTab === 'albums' && <View style={styles.activeTabIndicator} />}
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.tab, activeTab === 'genres' && styles.activeTab]}
-              onPress={() => setActiveTab('genres')}
-            >
-              <Text style={[styles.tabText, activeTab === 'genres' && styles.activeTabText]}>Genres</Text>
-              {activeTab === 'genres' && <View style={styles.activeTabIndicator} />}
-            </TouchableOpacity>
-          </View>
-          
-          {/* Content based on active tab */}
-          <View style={styles.topItemsContainer}>
-            {activeTab === 'tracks' && (
-              <FlatList
-                data={topTracks}
-                renderItem={renderTrackItem}
-                keyExtractor={(item) => item.id}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.listContent}
-              />
-            )}
-            
-            {activeTab === 'artists' && (
-              <FlatList
-                data={topArtists}
-                renderItem={renderArtistItem}
-                keyExtractor={(item) => item.id}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.listContent}
-              />
-            )}
-            
-            {activeTab === 'albums' && (
-              <FlatList
-                data={topAlbums}
-                renderItem={renderAlbumItem}
-                keyExtractor={(item) => item.id}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.listContent}
-              />
-            )}
-            
-            {activeTab === 'genres' && (
-              <FlatList
-                data={topGenres}
-                renderItem={renderGenreItem}
-                keyExtractor={(item) => item.name}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.listContent}
-              />
-            )}
-          </View>
-          
-          {/* Time range selector for top items */}
-          <View style={styles.timeRangeSelector}>
-            <TouchableOpacity
-              style={[styles.timeRangeButton, topTimeRange === 'short_term' && styles.activeTimeRange]}
-              onPress={() => setTopTimeRange('short_term')}
-            >
-              <Text style={[styles.timeRangeText, topTimeRange === 'short_term' && styles.activeTimeRangeText]}>4 weeks</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.timeRangeButton, topTimeRange === 'medium_term' && styles.activeTimeRange]}
-              onPress={() => setTopTimeRange('medium_term')}
-            >
-              <Text style={[styles.timeRangeText, topTimeRange === 'medium_term' && styles.activeTimeRangeText]}>6 months</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.timeRangeButton, topTimeRange === 'long_term' && styles.activeTimeRange]}
-              onPress={() => setTopTimeRange('long_term')}
-            >
-              <Text style={[styles.timeRangeText, topTimeRange === 'long_term' && styles.activeTimeRangeText]}>lifetime</Text>
-            </TouchableOpacity>
-            <MaterialCommunityIcons name="chevron-up" size={24} color={Colors.secondary} />
-          </View>
-        </>
-      );
-    }
-  };
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
@@ -592,14 +329,14 @@ const StatsScreen = () => {
             <>
               <Text style={styles.headerTitle}>Stats</Text>
               <TouchableOpacity onPress={() => setCurrentView('top')}>
-                <MaterialCommunityIcons name="chart-bar" size={24} color={Colors.text} />
+                <MaterialCommunityIcons name="trending-up" size={24} color={Colors.text} />
               </TouchableOpacity>
             </>
           ) : (
             <>
               <View style={styles.topHeader}>
                 <TouchableOpacity onPress={() => setCurrentView('stats')}>
-                  <MaterialCommunityIcons name="menu" size={24} color={Colors.text} />
+                  <MaterialCommunityIcons name="chart-bar" size={24} color={Colors.text} />
                 </TouchableOpacity>
                 <View style={styles.topTitleContainer}>
                   <Text style={styles.topTitle}>Top</Text>
@@ -612,69 +349,148 @@ const StatsScreen = () => {
           )}
         </View>
         
-        <ScrollView 
-          style={styles.scrollContainer} 
-          contentContainerStyle={styles.scrollContentContainer}
-        >
-          {renderContent()}
-          <View style={{ height: 70 }} />
-        </ScrollView>
+        {currentView === 'stats' ? (
+          <ScrollView 
+            style={styles.scrollContainer} 
+            contentContainerStyle={styles.scrollContentContainer}
+          >
+            <View style={styles.statsGrid}>
+              {renderStatTile(stats.streams, stats.changes.streams, 'streams')}
+              {renderStatTile(stats.differentTracks, stats.changes.differentTracks, 'different tracks')}
+              {renderStatTile(stats.minutesStreamed, stats.changes.minutesStreamed, 'minutes streamed')}
+              {renderStatTile(stats.differentArtists, stats.changes.differentArtists, 'different artists')}
+              {renderStatTile(stats.hoursStreamed, stats.changes.hoursStreamed, 'hours streamed')}
+              {renderStatTile(stats.differentAlbums, stats.changes.differentAlbums, 'different albums')}
+              {renderStatTile(stats.daysStreamed, stats.changes.daysStreamed, 'days streamed')}
+            </View>
+            <View style={{ height: 70 }} />
+          </ScrollView>
+        ) : (
+          <View style={{flex: 1}}>
+            <View style={styles.tabsContainer}>
+              <TouchableOpacity 
+                style={[styles.tab, activeTab === 'tracks' && styles.activeTab]}
+                onPress={() => setActiveTab('tracks')}
+              >
+                <Text style={[styles.tabText, activeTab === 'tracks' && styles.activeTabText]}>Tracks</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.tab, activeTab === 'artists' && styles.activeTab]}
+                onPress={() => setActiveTab('artists')}
+              >
+                <Text style={[styles.tabText, activeTab === 'artists' && styles.activeTabText]}>Artists</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.tab, activeTab === 'albums' && styles.activeTab]}
+                onPress={() => setActiveTab('albums')}
+              >
+                <Text style={[styles.tabText, activeTab === 'albums' && styles.activeTabText]}>Albums</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.tab, activeTab === 'genres' && styles.activeTab]}
+                onPress={() => setActiveTab('genres')}
+              >
+                <Text style={[styles.tabText, activeTab === 'genres' && styles.activeTabText]}>Genres</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.topItemsContainer}>
+              {activeTab === 'tracks' && (
+                <FlatList
+                  data={topTracks}
+                  renderItem={renderTrackItem}
+                  keyExtractor={(item) => item.id}
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={{...styles.listContent, paddingBottom: 100}}
+                />
+              )}
+              
+              {activeTab === 'artists' && (
+                <FlatList
+                  data={topArtists}
+                  renderItem={renderArtistItem}
+                  keyExtractor={(item) => item.id}
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={{...styles.listContent, paddingBottom: 100}}
+                />
+              )}
+              
+              {activeTab === 'albums' && (
+                <FlatList
+                  data={topAlbums}
+                  renderItem={renderAlbumItem}
+                  keyExtractor={(item) => item.id}
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={{...styles.listContent, paddingBottom: 100}}
+                />
+              )}
+              
+              {activeTab === 'genres' && (
+                <FlatList
+                  data={topGenres}
+                  renderItem={renderGenreItem}
+                  keyExtractor={(item) => item.name}
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={{...styles.listContent, paddingBottom: 100}}
+                />
+              )}
+            </View>
+          </View>
+        )}
         
         {currentView === 'stats' ? (
           <View style={styles.timeRangeSelector}>
             <TouchableOpacity
-              style={[styles.timeRangeButton, statsTimeRange === 'day' && styles.activeTimeRange]}
+              style={styles.timeRangeButton}
               onPress={() => setStatsTimeRange('day')}
             >
               <Text style={[styles.timeRangeText, statsTimeRange === 'day' && styles.activeTimeRangeText]}>day</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.timeRangeButton, statsTimeRange === 'week' && styles.activeTimeRange]}
+              style={styles.timeRangeButton}
               onPress={() => setStatsTimeRange('week')}
             >
               <Text style={[styles.timeRangeText, statsTimeRange === 'week' && styles.activeTimeRangeText]}>week</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.timeRangeButton, statsTimeRange === 'month' && styles.activeTimeRange]}
+              style={styles.timeRangeButton}
               onPress={() => setStatsTimeRange('month')}
             >
               <Text style={[styles.timeRangeText, statsTimeRange === 'month' && styles.activeTimeRangeText]}>month</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.timeRangeButton, statsTimeRange === 'year' && styles.activeTimeRange]}
+              style={styles.timeRangeButton}
               onPress={() => setStatsTimeRange('year')}
             >
               <Text style={[styles.timeRangeText, statsTimeRange === 'year' && styles.activeTimeRangeText]}>year</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.timeRangeButton, statsTimeRange === 'lifetime' && styles.activeTimeRange]}
+              style={styles.timeRangeButton}
               onPress={() => setStatsTimeRange('lifetime')}
             >
               <Text style={[styles.timeRangeText, statsTimeRange === 'lifetime' && styles.activeTimeRangeText]}>lifetime</Text>
             </TouchableOpacity>
-            <MaterialCommunityIcons name="chevron-up" size={24} color={Colors.secondary} />
           </View>
         ) : (
           <View style={styles.timeRangeSelector}>
             <TouchableOpacity
-              style={[styles.timeRangeButton, topTimeRange === 'short_term' && styles.activeTimeRange]}
+              style={styles.timeRangeButton}
               onPress={() => setTopTimeRange('short_term')}
             >
               <Text style={[styles.timeRangeText, topTimeRange === 'short_term' && styles.activeTimeRangeText]}>4 weeks</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.timeRangeButton, topTimeRange === 'medium_term' && styles.activeTimeRange]}
+              style={styles.timeRangeButton}
               onPress={() => setTopTimeRange('medium_term')}
             >
               <Text style={[styles.timeRangeText, topTimeRange === 'medium_term' && styles.activeTimeRangeText]}>6 months</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.timeRangeButton, topTimeRange === 'long_term' && styles.activeTimeRange]}
+              style={styles.timeRangeButton}
               onPress={() => setTopTimeRange('long_term')}
             >
               <Text style={[styles.timeRangeText, topTimeRange === 'long_term' && styles.activeTimeRangeText]}>lifetime</Text>
             </TouchableOpacity>
-            <MaterialCommunityIcons name="chevron-up" size={24} color={Colors.secondary} />
           </View>
         )}
       </View>
@@ -754,108 +570,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.text,
   },
-  section: {
-    marginTop: 15,
-    paddingHorizontal: 10,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.text,
-  },
-  betaBadge: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 4,
-    marginLeft: 10,
-  },
-  betaText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: Colors.textOnPrimary,
-  },
-  listeningClocks: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 15,
-  },
-  clockContainer: {
-    alignItems: 'center',
-    width: '48%',
-  },
-  clock: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: Colors.cardBackground,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  clockSegment: {
-    position: 'absolute',
-    width: 5,
-    height: 40,
-    borderRadius: 2,
-    top: 8,
-    left: '50%',
-    marginLeft: -2.5,
-    transformOrigin: 'bottom', // 确保这个属性正确设置
-  },
-  clockCenter: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: Colors.cardBackground, // 使用已定义的颜色
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative', // 添加这个以便正确定位子元素
-  },
-  clockCenterText: {
-    color: Colors.text,
-    fontSize: 10,
-    position: 'absolute', // 确保文本是绝对定位的
-  },
-  clockLabel: {
-    color: Colors.text,
-    marginTop: 10,
-    fontSize: 14,
-  },
-  dailyStatsContainer: {
-    marginBottom: 15,
-  },
-  yearNavigation: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  yearText: {
-    color: Colors.text,
-    fontSize: 16,
-  },
-  dailyStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  dailyStatItem: {
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 8,
-    padding: 15,
-    width: '48%',
-    alignItems: 'center',
-  },
-  dailyStatValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: Colors.primary,
-  },
   tabsContainer: {
     flexDirection: 'row',
     paddingHorizontal: 10,
@@ -880,13 +594,6 @@ const styles = StyleSheet.create({
   activeTabText: {
     color: Colors.text,
     fontWeight: 'bold',
-  },
-  activeTabIndicator: {
-    position: 'absolute',
-    bottom: -1,
-    height: 2,
-    width: '100%',
-    backgroundColor: Colors.primary,
   },
   topItemsContainer: {
     flex: 1,
@@ -976,8 +683,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5,
   },
   activeTimeRange: {
-    borderBottomWidth: 2,
-    borderBottomColor: Colors.primary,
   },
   timeRangeText: {
     color: Colors.text,
