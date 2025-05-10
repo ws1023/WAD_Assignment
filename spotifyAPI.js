@@ -93,7 +93,10 @@ export const getUserProfile = async () => {
       },
     });
     
-    if (response.status === 204 || response.status === 200) {
+    if (response.status === 204) {
+      console.log('No active device found');
+      return null;
+    } else if (response.status === 200) {
       console.log('Operation successful');
       return await response.json();
     } else {
@@ -122,7 +125,10 @@ export const getTopTracks = async (timeRange = 'medium_term', limit = 20) => {
       }
     );
     
-    if (response.status === 204 || response.status === 200) {
+    if (response.status === 204) {
+      console.log('No active device found');
+      return null;
+    } else if (response.status === 200) {
       console.log('Operation successful');
       return await response.json();
     } else {
@@ -151,7 +157,10 @@ export const getTopArtists = async (timeRange = 'medium_term', limit = 20) => {
       }
     );
     
-    if (response.status === 204 || response.status === 200) {
+    if (response.status === 204) {
+      console.log('No active device found');
+      return null;
+    } else if (response.status === 200) {
       console.log('Operation successful');
       return await response.json();
     } else {
@@ -180,7 +189,10 @@ export const getUserPlaylists = async (limit = 20, offset = 0) => {
       }
     );
     
-    if (response.status === 204 || response.status === 200) {
+    if (response.status === 204) {
+      console.log('No active device found');
+      return null;
+    } else if (response.status === 200) {
       console.log('Operation successful');
       return await response.json();
     } else {
@@ -210,7 +222,10 @@ export const search = async (query, types = ['track', 'artist', 'album'], limit 
       }
     );
     
-    if (response.status === 204 || response.status === 200) {
+    if (response.status === 204) {
+      console.log('No active device found');
+      return null;
+    } else if (response.status === 200) {
       console.log('Operation successful');
       return await response.json();
     } else {
@@ -239,7 +254,10 @@ export const getUserFollowing = async (type = 'artist', limit = 1) => {
       }
     );
     
-    if (response.status === 204 || response.status === 200) {
+    if (response.status === 204) {
+      console.log('No active device found');
+      return null;
+    } else if (response.status === 200) {
       console.log('Operation successful');
       return await response.json();
     } else {
@@ -266,7 +284,10 @@ export const getRecentlyPlayed = async (limit = 50) => {
         },
       }
     );
-    if (response.status === 204 || response.status === 200) {
+    if (response.status === 204) {
+      console.log('No active device found');
+      return null;
+    } else if (response.status === 200) {
       console.log('Operation successful');
       return await response.json();
     } else if (response.status === 403) {
@@ -297,7 +318,10 @@ export const getRecentlyPlayedItems = async (limit = 50) => {
       }
     );
     
-    if (response.status === 204 || response.status === 200) {
+    if (response.status === 204) {
+      console.log('No active device found');
+      return null;
+    } else if (response.status === 200) {
       console.log('Operation successful');
       const data = await response.json();
       
@@ -490,8 +514,10 @@ export const getPlaybackState = async () => {
       },
     });
     
-    // If no active device is found (204 response)
-    if (response.status === 204 || response.status === 200) {
+    if (response.status === 204) {
+      console.log('No active device found');
+      return null;
+    } else if (response.status === 200) {
       console.log('Operation successful');
       return await response.json();
     } else {
@@ -517,7 +543,10 @@ export const getArtistDetails = async (artistId) => {
       },
     });
     
-    if (response.status === 204 || response.status === 200) {
+    if (response.status === 204) {
+      console.log('No active device found');
+      return null;
+    } else if (response.status === 200) {
       console.log('Operation successful');
       return await response.json();
     } else {
@@ -546,7 +575,10 @@ export const getArtistAlbums = async (artistId, limit = 20, offset = 0) => {
       }
     );
     
-    if (response.status === 204 || response.status === 200) {
+    if (response.status === 204) {
+      console.log('No active device found');
+      return null;
+    } else if (response.status === 200) {
       console.log('Operation successful');
       return await response.json();
     } else {
@@ -575,7 +607,10 @@ export const getArtistTopTracks = async (artistId, market = 'US') => {
       }
     );
     
-    if (response.status === 204 || response.status === 200) {
+    if (response.status === 204) {
+      console.log('No active device found');
+      return null;
+    } else if (response.status === 200) {
       console.log('Operation successful');
       return await response.json();
     } else {
@@ -603,7 +638,10 @@ export const getUserSavedAlbums = async (limit = 50) => {
       }
     );
     
-    if (response.status === 204 || response.status === 200) {
+    if (response.status === 204) {
+      console.log('No active device found');
+      return null;
+    } else if (response.status === 200) {
       console.log('Operation successful');
       return await response.json();
     } else {
@@ -631,7 +669,10 @@ export const getFollowedArtists = async (limit = 50) => {
       }
     );
     
-    if (response.status === 204 || response.status === 200) {
+    if (response.status === 204) {
+      console.log('No active device found');
+      return null;
+    } else if (response.status === 200) {
       console.log('Operation successful');
       const data = await response.json();
       return data.artists; // Return the artists object directly
@@ -660,7 +701,10 @@ export const searchTracks = async (query, limit = 20) => {
       }
     );
     
-    if (response.status === 204 || response.status === 200) {
+    if (response.status === 204) {
+      console.log('No active device found');
+      return null;
+    } else if (response.status === 200) {
       console.log('Operation successful');
       return await response.json();
     } else {
@@ -685,7 +729,10 @@ export const getAlbumDetails = async albumId => {
       },
     });
     
-    if (response.status === 204 || response.status === 200) {
+    if (response.status === 204) {
+      console.log('No active device found');
+      return null;
+    } else if (response.status === 200) {
       console.log('Operation successful');
       return await response.json();
     } else {
@@ -710,7 +757,10 @@ export const getPlaylistDetails = async (playlistId) => {
       },
     });
     
-    if (response.status === 204 || response.status === 200) {
+    if (response.status === 204) {
+      console.log('No active device found');
+      return null;
+    } else if (response.status === 200) {
       console.log('Operation successful');
       return await response.json();
     } else {
@@ -756,7 +806,10 @@ export const startPlayback = async (deviceId = null, uris = null, positionMs = 0
       body: JSON.stringify(body),
     });
 
-    if (response.status === 204 || response.status === 200) {
+    if (response.status === 204) {
+      console.log('No active device found');
+      return null;
+    } else if (response.status === 200) {
       console.log('Operation successful');
       return true;
     } else {
@@ -782,7 +835,10 @@ export const pausePlayback = async () => {
       },
     });
 
-    if (response.status === 204 || response.status === 200) {
+    if (response.status === 204) {
+      console.log('No active device found');
+      return null;
+    } else if (response.status === 200) {
       console.log('Operation successful');
     } else {
       console.error('Failed operation:', response.status);
@@ -805,7 +861,10 @@ export const skipToNext = async () => {
       },
     });
 
-    if (response.status === 204 || response.status === 200) {
+    if (response.status === 204) {
+      console.log('No active device found');
+      return null;
+    } else if (response.status === 200) {
       console.log('Operation successful');
     } else {
       console.error('Failed operation:', response.status);
@@ -828,7 +887,10 @@ export const skipToPrevious = async () => {
       },
     });
 
-    if (response.status === 204 || response.status === 200) {
+    if (response.status === 204) {
+      console.log('No active device found');
+      return null;
+    } else if (response.status === 200) {
       console.log('Operation successful');
     } else {
       console.error('Failed operation:', response.status);
@@ -851,7 +913,10 @@ export const seekToPosition = async (positionMs) => {
       },
     });
 
-    if (response.status === 204 || response.status === 200) {
+    if (response.status === 204) {
+      console.log('No active device found');
+      return null;
+    } else if (response.status === 200) {
       console.log('Operation successful');
     } else {
       console.error('Failed operation:', response.status);
